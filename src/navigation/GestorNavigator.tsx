@@ -4,6 +4,7 @@ import { DashboardScreen } from '../screens/gestor/DashboardScreen';
 import { PerfilGestorScreen } from '../screens/gestor/PerfilGestorScreen';
 import { ValidacionesScreen } from '../screens/gestor/ValidacionesScreen';
 import { colores } from '../theme';
+import { iconoDeTab } from './iconos';
 import type { GestorTabsParams } from './tipos';
 
 const Tab = createBottomTabNavigator<GestorTabsParams>();
@@ -17,9 +18,9 @@ const Tab = createBottomTabNavigator<GestorTabsParams>();
 export function GestorNavigator() {
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.lila }}>
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Validaciones" component={ValidacionesScreen} />
-      <Tab.Screen name="Perfil" component={PerfilGestorScreen} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarIcon: iconoDeTab('stats-chart') }} />
+      <Tab.Screen name="Validaciones" component={ValidacionesScreen} options={{ tabBarIcon: iconoDeTab('shield-checkmark') }} />
+      <Tab.Screen name="Perfil" component={PerfilGestorScreen} options={{ tabBarIcon: iconoDeTab('person') }} />
     </Tab.Navigator>
   );
 }

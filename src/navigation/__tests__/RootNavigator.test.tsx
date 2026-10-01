@@ -43,4 +43,10 @@ describe('navegación por rol', () => {
       expect(await screen.findByRole('button', { name: new RegExp(`^${tab}`) })).toBeTruthy();
     }
   });
+
+  it('las pestañas no muestran el ícono faltante', async () => {
+    await entrarComo('CLIENTE');
+    expect(await screen.findByRole('button', { name: /^Inicio/ })).toBeTruthy();
+    expect(screen.queryByText('⏷')).toBeNull();
+  });
 });

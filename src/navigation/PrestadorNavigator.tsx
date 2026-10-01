@@ -9,6 +9,7 @@ import { NuevoTrabajoScreen } from '../screens/prestador/NuevoTrabajoScreen';
 import { PerfilPropioScreen } from '../screens/prestador/PerfilPropioScreen';
 import { SolicitudesScreen } from '../screens/prestador/SolicitudesScreen';
 import { colores } from '../theme';
+import { iconoDeTab } from './iconos';
 import type { PrestadorStackParams, PrestadorTabsParams } from './tipos';
 
 const Tab = createBottomTabNavigator<PrestadorTabsParams>();
@@ -18,10 +19,12 @@ const Stack = createNativeStackNavigator<PrestadorStackParams>();
 function PrestadorTabs() {
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde }}>
-      <Tab.Screen name="Solicitudes" component={SolicitudesScreen} />
-      <Tab.Screen name="Mensajes" component={MensajesScreen} />
-      <Tab.Screen name="Trabajos">{() => <TrabajosRealizadosScreen soloLectura={false} />}</Tab.Screen>
-      <Tab.Screen name="Perfil" component={PerfilPropioScreen} />
+      <Tab.Screen name="Solicitudes" component={SolicitudesScreen} options={{ tabBarIcon: iconoDeTab('clipboard') }} />
+      <Tab.Screen name="Mensajes" component={MensajesScreen} options={{ tabBarIcon: iconoDeTab('chatbubbles') }} />
+      <Tab.Screen name="Trabajos" options={{ tabBarIcon: iconoDeTab('briefcase') }}>
+        {() => <TrabajosRealizadosScreen soloLectura={false} />}
+      </Tab.Screen>
+      <Tab.Screen name="Perfil" component={PerfilPropioScreen} options={{ tabBarIcon: iconoDeTab('person') }} />
     </Tab.Navigator>
   );
 }
