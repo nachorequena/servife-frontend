@@ -11,11 +11,14 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { adb, emuladoresCorriendo, salir } from './android.mjs';
 
+// Las capturas de pantalla pasan de 1 MB, el default de Node.
+const MAX_SALIDA = 64 * 1024 * 1024;
+
 const [serie] = emuladoresCorriendo();
 if (!serie) salir('No hay ningún emulador corriendo. Levantalo con npm run emulador.');
 
 function adbShell(...args) {
-  return execFileSync(adb, ['-s', serie, ...args], { encoding: 'utf8' });
+  return execFileSync(adb, ['-s', serie, ...args], { encoding: 'utf8', maxBuffer: MAX_SALIDA });
 }
 
 function elementos() {
@@ -65,7 +68,7 @@ switch (accion) {
     break;
   case 'captura':
     if (!valor) salir('Falta el archivo: npm run pantalla -- captura <archivo.png>');
-    writeFileSync(valor, execFileSync(adb, ['-s', serie, 'exec-out', 'screencap', '-p']));
+    writeFileSync(valor, execFileSync(adb, ['-s', serie, 'exec-out', 'screencap', '-p'], { maxBuffer: MAX_SALIDA }));
     console.log(`▸ Captura en ${valor}`);
     break;
   default:
