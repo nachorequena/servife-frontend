@@ -17,7 +17,9 @@ Si tu cambio modifica el estado del proyecto o deja viejo algo de ../servife-ia/
 pareado en servife-ia con el mismo nombre de rama (../servife-ia/.agents/AGENTS.md, punto 6).
 Un cambio de contrato que afecta a servife-backend se escribe primero en 05-api-contract.md.
 
-Comandos (dev, tests, typecheck): README.md de este repo.
+Comandos (dev, tests, typecheck): README.md de este repo. "Levantá el proyecto" quiere decir
+backend con Docker y la app en el emulador de Android (npm run emulador); las pruebas end to end
+se hacen ahí con npm run pantalla (../servife-ia/.ai/08-testing.md §6).
 
 ## Expo
 
