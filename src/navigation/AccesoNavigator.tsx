@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { BienvenidaScreen } from '../screens/acceso/BienvenidaScreen';
 import { IngresarScreen } from '../screens/acceso/IngresarScreen';
+import { RecuperarScreen } from '../screens/acceso/RecuperarScreen';
 import { RegistroScreen } from '../screens/acceso/RegistroScreen';
 import type { AccesoParams } from './tipos';
 
@@ -14,6 +15,7 @@ export function AccesoNavigator() {
       <Stack.Screen name="Bienvenida" component={BienvenidaScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Ingresar" component={IngresarScreen} options={{ title: 'Ingresar' }} />
       <Stack.Screen name="Registro" component={RegistroScreen} options={{ title: 'Registro' }} />
+      <Stack.Screen name="Recuperar" component={RecuperarScreen} options={{ title: 'Recuperar contraseña' }} />
     </Stack.Navigator>
   );
 }
