@@ -4,8 +4,8 @@ import {
   limpiarTokens,
   obtenerAccessToken,
   obtenerRefreshToken,
-  type ParDeTokens,
 } from './tokens';
+import type { TokensDeSesion } from './identidad';
 
 /**
  * Cliente HTTP compartido. Las pantallas nunca llaman a fetch directo: usan las funciones de
@@ -93,12 +93,12 @@ async function renovar(): Promise<boolean> {
   if (!refreshToken) {
     return false;
   }
-  // A3 · POST /auth/refresh. TODO(módulo A): confirmar la forma del cuerpo y de la respuesta.
+  // A3 · POST /auth/refresh. Rota el refresh token en cada uso: se guarda el par nuevo.
   const respuesta = await enviar('/auth/refresh', { metodo: 'POST', cuerpo: { refreshToken }, publico: true });
   if (!respuesta.ok) {
     return false;
   }
-  await guardarTokens((await respuesta.json()) as ParDeTokens);
+  await guardarTokens((await respuesta.json()) as TokensDeSesion);
   return true;
 }
 
