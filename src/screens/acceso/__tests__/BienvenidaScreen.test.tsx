@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, userEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BienvenidaScreen } from '../BienvenidaScreen';
 import { espaciado } from '../../../theme';
@@ -13,4 +13,15 @@ test('la banda del logo empieza debajo de la barra de estado', async () => {
     </SafeAreaProvider>,
   );
   expect(screen.getByTestId('barra-logo')).toHaveStyle({ paddingTop: 30 + espaciado.s });
+});
+
+test('"Prestador" abre el registro con el rol de prestador', async () => {
+  const navigation = { navigate: jest.fn() } as any;
+  await render(
+    <SafeAreaProvider initialMetrics={metricas}>
+      <BienvenidaScreen navigation={navigation} route={{ key: 'b', name: 'Bienvenida' } as any} />
+    </SafeAreaProvider>,
+  );
+  await userEvent.setup().press(screen.getByRole('button', { name: 'Prestador' }));
+  expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'PRESTADOR' });
 });
