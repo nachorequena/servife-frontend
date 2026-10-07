@@ -95,8 +95,11 @@ async function renovar(): Promise<boolean> {
   }
   // A3 · POST /auth/refresh. Rota el refresh token en cada uso: se guarda el par nuevo.
   const respuesta = await enviar('/auth/refresh', { metodo: 'POST', cuerpo: { refreshToken }, publico: true });
+  if (respuesta.status === 401 || respuesta.status === 403) {
+    return false; // refresh vencido, revocado o cuenta suspendida: la sesión está muerta
+  }
   if (!respuesta.ok) {
-    return false;
+    throw await ApiError.desde(respuesta); // error del servidor: no se borra la sesión
   }
   await guardarTokens((await respuesta.json()) as TokensDeSesion);
   return true;

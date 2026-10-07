@@ -77,6 +77,29 @@ describe('cliente HTTP', () => {
     expect(obtenerAccessToken()).toBeNull();
   });
 
+  it('un refresh con error del servidor no borra la sesión', async () => {
+    fetchMock
+      .mockResolvedValueOnce(respuesta(401, error401))
+      .mockResolvedValueOnce(respuesta(500, { status: 500, codigo: 'ERROR_INTERNO', mensaje: 'Falló.', errores: [] }));
+
+    await expect(pedir('/solicitudes')).rejects.toMatchObject({ status: 500 });
+
+    expect(alExpirar).not.toHaveBeenCalled();
+    expect(obtenerAccessToken()).toBe('access-viejo');
+    expect(mockAlmacen.get('servife.refreshToken')).toBe('refresh-1');
+  });
+
+  it.each([401, 403])('un refresh que responde %s cierra la sesión y borra los tokens', async (status) => {
+    fetchMock
+      .mockResolvedValueOnce(respuesta(401, error401))
+      .mockResolvedValueOnce(respuesta(status, { status, codigo: 'REFRESH_INVALIDO', mensaje: 'x', errores: [] }));
+
+    await expect(pedir('/solicitudes')).rejects.toBeInstanceOf(ApiError);
+
+    expect(alExpirar).toHaveBeenCalledTimes(1);
+    expect(mockAlmacen.has('servife.refreshToken')).toBe(false);
+  });
+
   it('si el reintento vuelve a dar 401, no entra en loop', async () => {
     fetchMock
       .mockResolvedValueOnce(respuesta(401, error401))

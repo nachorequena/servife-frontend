@@ -72,7 +72,7 @@ export function ProveedorDeSesion({ children }: { children: ReactNode }) {
       const usuario = await obtenerSesion();
       setSesion({ rol: usuario.rol, usuario });
     } catch (error) {
-      await limpiarTokens();
+      await limpiarTokens().catch(() => {});
       throw error;
     }
   }, []);
