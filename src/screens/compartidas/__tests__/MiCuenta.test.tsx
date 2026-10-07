@@ -13,12 +13,15 @@ jest.mock('../../../api/identidad', () => ({
 }));
 
 const mockActualizarUsuario = jest.fn();
+const mockIngresar = jest.fn();
+const mockCerrar = jest.fn();
 let mockUsuario: Usuario;
 jest.mock('../../../store/sesion', () => ({
   useSesion: () => ({
     sesion: { rol: mockUsuario.rol, usuario: mockUsuario },
     actualizarUsuario: mockActualizarUsuario,
-    cerrar: jest.fn(),
+    ingresar: mockIngresar,
+    cerrar: mockCerrar,
   }),
 }));
 
@@ -40,6 +43,8 @@ beforeEach(() => {
   mockA6.mockReset();
   mockA7.mockReset();
   mockActualizarUsuario.mockReset();
+  mockIngresar.mockReset().mockResolvedValue(undefined);
+  mockCerrar.mockReset().mockResolvedValue(undefined);
   mockUsuario = cliente;
 });
 
@@ -119,15 +124,35 @@ describe('MiCuenta', () => {
       await usuario.press(screen.getByRole('button', { name: 'Cambiar contraseña' }));
     }
 
-    it('llama A7, confirma y limpia los campos', async () => {
+    it('llama A7, vuelve a ingresar con la contraseña nueva, confirma y limpia los campos', async () => {
       mockA7.mockResolvedValue(undefined);
       await render(<MiCuenta />);
       await completar('vieja1234', 'nueva1234', 'nueva1234');
       expect(mockA7).toHaveBeenCalledWith({ contraseniaActual: 'vieja1234', contraseniaNueva: 'nueva1234' });
       expect(await screen.findByText('Contraseña actualizada.')).toBeTruthy();
+      expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'nueva1234');
+      expect(mockCerrar).not.toHaveBeenCalled();
       expect(screen.getByLabelText('Contraseña actual').props.value).toBe('');
       expect(screen.getByLabelText('Contraseña nueva').props.value).toBe('');
       expect(screen.getByLabelText('Repetir contraseña').props.value).toBe('');
+    });
+
+    it('si no puede ingresar de nuevo, avisa y cierra la sesión', async () => {
+      mockA7.mockResolvedValue(undefined);
+      mockIngresar.mockRejectedValue(new TypeError('Network request failed'));
+      await render(<MiCuenta />);
+      await completar('vieja1234', 'nueva1234', 'nueva1234');
+      expect(await screen.findByText('Contraseña actualizada. Ingresá de nuevo.')).toBeTruthy();
+      expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'nueva1234');
+      expect(mockCerrar).toHaveBeenCalledTimes(1);
+    });
+
+    it('si A7 falla no vuelve a ingresar', async () => {
+      mockA7.mockRejectedValue(new TypeError('Network request failed'));
+      await render(<MiCuenta />);
+      await completar('vieja1234', 'nueva1234', 'nueva1234');
+      expect(await screen.findByText('No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.')).toBeTruthy();
+      expect(mockIngresar).not.toHaveBeenCalled();
     });
 
     it('valida la regla y que coincidan antes de llamar', async () => {

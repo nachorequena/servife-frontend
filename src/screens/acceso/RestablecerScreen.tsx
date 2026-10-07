@@ -29,6 +29,7 @@ export function RestablecerScreen({ navigation, route }: Props) {
   const [error, setError] = useState<ApiError | null>(null);
   const [falloDeRed, setFalloDeRed] = useState(false);
   const [reenviado, setReenviado] = useState(false);
+  const [reenviando, setReenviando] = useState(false);
 
   function limpiarMensajes() {
     setError(null);
@@ -56,7 +57,7 @@ export function RestablecerScreen({ navigation, route }: Props) {
     setEnviando(true);
     try {
       await confirmarRecuperacion({ email, codigo, contraseniaNueva: contrasenia });
-      navigation.navigate('Ingresar', { aviso: 'Contraseña actualizada. Ingresá de nuevo.' });
+      navigation.popTo('Ingresar', { aviso: 'Contraseña actualizada. Ingresá de nuevo.' });
     } catch (e) {
       registrarFallo(e);
     } finally {
@@ -66,11 +67,15 @@ export function RestablecerScreen({ navigation, route }: Props) {
 
   async function reenviarCodigo() {
     limpiarMensajes();
+    setErrorLocal({});
+    setReenviando(true);
     try {
       await recuperarContrasenia({ email });
       setReenviado(true);
     } catch (e) {
       registrarFallo(e);
+    } finally {
+      setReenviando(false);
     }
   }
 
@@ -111,7 +116,7 @@ export function RestablecerScreen({ navigation, route }: Props) {
         error={errorLocal.repetir}
       />
       <Button etiqueta="Cambiar contraseña" onPress={cambiarContrasenia} deshabilitado={enviando} />
-      <Button etiqueta="Reenviar código" variante="terciario" onPress={reenviarCodigo} />
+      <Button etiqueta="Reenviar código" variante="terciario" onPress={reenviarCodigo} deshabilitado={reenviando} />
       {reenviado && <Text style={estilos.mensaje}>Te mandamos un código nuevo.</Text>}
       {mensajeGeneral !== undefined && <Text style={estilos.mensaje}>{mensajeGeneral}</Text>}
       {falloDeRed && <Text style={estilos.mensaje}>{MENSAJE_DE_RED}</Text>}

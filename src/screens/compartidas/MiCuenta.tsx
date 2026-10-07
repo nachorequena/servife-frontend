@@ -43,7 +43,7 @@ function mensajeGeneral(fallo: Fallo, campos: string[]): string | undefined {
  * contraseña). El gestor solo edita el nombre. Incluye "Cerrar sesión".
  */
 export function MiCuenta() {
-  const { sesion, actualizarUsuario } = useSesion();
+  const { sesion, actualizarUsuario, ingresar, cerrar } = useSesion();
   const usuario = sesion?.usuario;
   const [nombre, setNombre] = useState(usuario?.nombreApellido ?? '');
   const [telefono, setTelefono] = useState(usuario?.telefono ?? '');
@@ -59,13 +59,14 @@ export function MiCuenta() {
   const [repetir, setRepetir] = useState('');
   const [errorLocal, setErrorLocal] = useState<{ nueva?: string; repetir?: string }>({});
   const [cambiando, setCambiando] = useState(false);
-  const [cambiada, setCambiada] = useState(false);
+  const [aviso, setAviso] = useState<string>();
   const [falloDeClave, setFalloDeClave] = useState<Fallo>(SIN_FALLO);
 
   if (!usuario) {
     return null;
   }
   const esGestor = usuario.rol === 'GESTOR';
+  const email = usuario.email;
 
   async function guardar() {
     setGuardado(false);
@@ -96,7 +97,7 @@ export function MiCuenta() {
   }
 
   async function cambiarClave() {
-    setCambiada(false);
+    setAviso(undefined);
     setFalloDeClave(SIN_FALLO);
     const local: typeof errorLocal = {};
     if (!REGLA_DE_CONTRASENIA.test(nueva)) local.nueva = MENSAJE_DE_CONTRASENIA;
@@ -107,10 +108,18 @@ export function MiCuenta() {
     setCambiando(true);
     try {
       await cambiarContrasenia({ contraseniaActual: actual, contraseniaNueva: nueva });
+      // A7 revoca todos los refresh tokens (también el de este dispositivo): se pide un par nuevo.
+      try {
+        await ingresar(email, nueva);
+        setAviso('Contraseña actualizada.');
+      } catch {
+        setAviso('Contraseña actualizada. Ingresá de nuevo.');
+        await cerrar();
+        return;
+      }
       setActual('');
       setNueva('');
       setRepetir('');
-      setCambiada(true);
     } catch (e) {
       setFalloDeClave(comoFallo(e));
     } finally {
@@ -202,7 +211,7 @@ export function MiCuenta() {
         error={errorLocal.repetir}
       />
       <Button etiqueta="Cambiar contraseña" onPress={cambiarClave} deshabilitado={cambiando} />
-      {cambiada && <Text style={estilos.mensaje}>Contraseña actualizada.</Text>}
+      {aviso !== undefined && <Text style={estilos.mensaje}>{aviso}</Text>}
       {generalDeClave !== undefined && <Text style={estilos.mensaje}>{generalDeClave}</Text>}
       {falloDeClave.red && <Text style={estilos.mensaje}>{MENSAJE_DE_RED}</Text>}
 

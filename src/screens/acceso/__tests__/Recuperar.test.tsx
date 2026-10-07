@@ -1,4 +1,4 @@
-import { render, screen, userEvent } from '@testing-library/react-native';
+import { act, render, screen, userEvent } from '@testing-library/react-native';
 
 import { ApiError } from '../../../api/errores';
 import { confirmarRecuperacion, recuperarContrasenia } from '../../../api/identidad';
@@ -12,13 +12,14 @@ jest.mock('../../../api/identidad', () => ({
 
 const mockRecuperar = recuperarContrasenia as jest.Mock;
 const mockConfirmar = confirmarRecuperacion as jest.Mock;
-const navigation = { navigate: jest.fn() } as any;
+const navigation = { navigate: jest.fn(), popTo: jest.fn() } as any;
 const AVISO = 'Te mandamos un código de 6 dígitos a tu correo. Vence en 15 minutos.';
 
 beforeEach(() => {
   mockRecuperar.mockReset();
   mockConfirmar.mockReset();
   navigation.navigate.mockReset();
+  navigation.popTo.mockReset();
 });
 
 describe('RecuperarScreen', () => {
@@ -89,7 +90,7 @@ describe('RestablecerScreen', () => {
       codigo: '123456',
       contraseniaNueva: 'Clave123',
     });
-    expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', {
+    expect(navigation.popTo).toHaveBeenCalledWith('Ingresar', {
       aviso: 'Contraseña actualizada. Ingresá de nuevo.',
     });
   });
@@ -101,7 +102,7 @@ describe('RestablecerScreen', () => {
     await montar();
     await completar('123456', 'Clave123', 'Clave123');
     expect(await screen.findByText('El código no es válido o venció. Pedí uno nuevo.')).toBeTruthy();
-    expect(navigation.navigate).not.toHaveBeenCalled();
+    expect(navigation.popTo).not.toHaveBeenCalled();
   });
 
   it('validación local: código corto, contraseña débil y no coinciden no llaman a A9', async () => {
@@ -126,6 +127,22 @@ describe('RestablecerScreen', () => {
     const usuario = userEvent.setup();
     await usuario.press(screen.getByRole('button', { name: 'Reenviar código' }));
     expect(mockRecuperar).toHaveBeenCalledWith({ email: 'ana@mail.com' });
+    expect(await screen.findByText('Te mandamos un código nuevo.')).toBeTruthy();
+  });
+
+  it('"Reenviar código" queda deshabilitado mientras A8 está en curso y limpia los errores locales', async () => {
+    let resolver: () => void = () => {};
+    mockRecuperar.mockReturnValue(new Promise<void>((r) => (resolver = r)));
+    await montar();
+    await completar('123', 'Clave123', 'Clave123');
+    expect(screen.getByText('El código tiene 6 dígitos.')).toBeTruthy();
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Reenviar código' }));
+    expect(screen.getByRole('button', { name: 'Reenviar código' }).props.accessibilityState.disabled).toBe(true);
+    expect(screen.queryByText('El código tiene 6 dígitos.')).toBeNull();
+
+    await act(async () => resolver());
+    expect(screen.getByRole('button', { name: 'Reenviar código' }).props.accessibilityState.disabled).toBe(false);
     expect(await screen.findByText('Te mandamos un código nuevo.')).toBeTruthy();
   });
 });

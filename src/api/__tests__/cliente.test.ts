@@ -148,4 +148,42 @@ describe('cliente HTTP', () => {
 
     expect(fetchMock.mock.calls[0][0]).toMatch(/\/prestadores\?radioKm=10&dias=1&dias=3$/);
   });
+
+  describe('tiempo máximo', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    /** fetch que nunca responde y rechaza recién cuando se cancela, como el real. */
+    function fetchColgado(_url: string, init: RequestInit) {
+      return new Promise<Response>((_resolver, rechazar) => {
+        init.signal?.addEventListener('abort', () => rechazar(new Error('Aborted')));
+      });
+    }
+
+    it('a los 10 s cancela la request y falla como error de red, sin tocar los tokens', async () => {
+      fetchMock.mockImplementation(fetchColgado);
+
+      const resultado = pedir('/solicitudes').catch((e: unknown) => e);
+      await jest.advanceTimersByTimeAsync(9_999);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+
+      const error = await resultado;
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(ApiError);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+      expect(alExpirar).not.toHaveBeenCalled();
+      expect(obtenerAccessToken()).toBe('access-viejo');
+      expect(mockAlmacen.get('servife.refreshToken')).toBe('refresh-1');
+    });
+
+    it('una respuesta a tiempo no se cancela', async () => {
+      fetchMock.mockResolvedValueOnce(respuesta(200, { ok: 1 }));
+
+      await expect(pedir('/solicitudes')).resolves.toEqual({ ok: 1 });
+      await jest.advanceTimersByTimeAsync(20_000);
+
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+    });
+  });
 });

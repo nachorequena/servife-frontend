@@ -69,7 +69,7 @@ export function RegistroScreen({ navigation, route }: Props) {
         contrasenia,
         ...(rol === 'PRESTADOR' ? { idTipoServicio } : {}),
       });
-      navigation.navigate('Ingresar', { aviso: AVISOS[rol] });
+      navigation.popTo('Ingresar', { aviso: AVISOS[rol] });
     } catch (e) {
       if (e instanceof ApiError) {
         setError(e);

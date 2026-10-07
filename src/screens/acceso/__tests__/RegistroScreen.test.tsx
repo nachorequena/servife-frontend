@@ -8,7 +8,7 @@ const mockListarTipos = jest.fn();
 jest.mock('../../../api/identidad', () => ({ registrar: (...a: unknown[]) => mockRegistrar(...a) }));
 jest.mock('../../../api/catalogo', () => ({ listarTiposServicio: () => mockListarTipos() }));
 
-const navigation = { navigate: jest.fn() } as any;
+const navigation = { navigate: jest.fn(), popTo: jest.fn() } as any;
 
 async function montar(rol?: 'CLIENTE' | 'PRESTADOR') {
   await render(
@@ -29,6 +29,7 @@ beforeEach(() => {
   mockRegistrar.mockReset();
   mockListarTipos.mockReset();
   navigation.navigate.mockReset();
+  navigation.popTo.mockReset();
   mockListarTipos.mockResolvedValue([
     { uuid: 'u-gas', nombre: 'Gasista', icono: null, requiereMatricula: true },
     { uuid: 'u-elec', nombre: 'Electricista', icono: null, requiereMatricula: false },
@@ -103,7 +104,7 @@ describe('RegistroScreen', () => {
       email: 'ana@mail.com',
       contrasenia: 'Clave123',
     });
-    expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', { aviso: 'Cuenta creada. Ingresá con tu correo.' });
+    expect(navigation.popTo).toHaveBeenCalledWith('Ingresar', { aviso: 'Cuenta creada. Ingresá con tu correo.' });
   });
 
   it('éxito de prestador manda idTipoServicio y su aviso', async () => {
@@ -113,7 +114,7 @@ describe('RegistroScreen', () => {
     const usuario = await completar();
     await usuario.press(screen.getByRole('button', { name: 'Crear cuenta' }));
     expect(mockRegistrar).toHaveBeenCalledWith(expect.objectContaining({ rol: 'PRESTADOR', idTipoServicio: 'u-elec' }));
-    expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', {
+    expect(navigation.popTo).toHaveBeenCalledWith('Ingresar', {
       aviso: 'Cuenta creada. Un gestor va a validar tu perfil.',
     });
   });
