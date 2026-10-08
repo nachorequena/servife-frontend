@@ -1,6 +1,8 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { Campanita } from '../components/Campanita';
+import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
@@ -18,7 +20,7 @@ const Stack = createNativeStackNavigator<PrestadorStackParams>();
 /** Tabs del prestador (D04): Solicitudes, Mensajes, Trabajos, Perfil. */
 function PrestadorTabs() {
   return (
-    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde }}>
+    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde, headerRight: () => <Campanita /> }}>
       <Tab.Screen name="Solicitudes" component={SolicitudesScreen} options={{ tabBarIcon: iconoDeTab('clipboard') }} />
       <Tab.Screen name="Mensajes" component={MensajesScreen} options={{ tabBarIcon: iconoDeTab('chatbubbles') }} />
       <Tab.Screen name="Trabajos" options={{ tabBarIcon: iconoDeTab('briefcase') }}>
@@ -36,6 +38,7 @@ export function PrestadorNavigator() {
       <Stack.Screen name="NuevoTrabajo" component={NuevoTrabajoScreen} options={{ title: 'Nuevo trabajo' }} />
       <Stack.Screen name="DetalleTrabajo" component={DetalleTrabajoScreen} options={{ title: 'Trabajo' }} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
     </Stack.Navigator>
   );
 }

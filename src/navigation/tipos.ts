@@ -29,6 +29,7 @@ export type ClienteStackParams = {
   Valoracion: { uuidSolicitud: string };
   TrabajosRealizados: { uuidPrestador: string };
   Chat: { uuidChat: string };
+  Avisos: undefined;
 };
 
 export type PrestadorTabsParams = {
@@ -43,11 +44,19 @@ export type PrestadorStackParams = {
   NuevoTrabajo: undefined;
   DetalleTrabajo: { uuidPublicacion: string };
   Chat: { uuidChat: string };
+  Avisos: undefined;
 };
 
 /** D04 no enumera las tabs del gestor: estas son las del prototipo de Figma, pendientes de confirmar. */
 export type GestorTabsParams = {
   Dashboard: undefined;
   Validaciones: undefined;
+  Servicios: undefined;
   Perfil: undefined;
+};
+
+export type GestorStackParams = {
+  Tabs: undefined;
+  FormularioTipoServicio: { uuid?: string };
+  Avisos: undefined;
 };

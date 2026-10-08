@@ -14,6 +14,7 @@ export const colores = {
   lila: '#7B61FF', // navegación del gestor
   fondoLila: '#FBF2FF',
   estrella: '#F5C518',
+  verdeClaro: '#E6F8F2', // fondo de un aviso sin leer
 } as const;
 
 export const radios = {
@@ -30,6 +31,7 @@ export const tipografia = {
   seccion: { fontSize: 17, fontWeight: '700' },
   cuerpo: { fontSize: 14, fontWeight: '400' },
   boton: { fontSize: 16, fontWeight: '700' },
+  globo: { fontSize: 11, fontWeight: '700' },
 } as const;
 
 /** Escala de márgenes y paddings. No está en la maqueta: se agregó para no escribir números sueltos. */
@@ -49,6 +51,11 @@ export const bordes = {
 /** Tamaños fijos de elementos. No están en la maqueta con número: se agregaron como punto de partida. */
 export const tamanios = {
   avatar: 48,
+  avatarGrande: 132,
+  icono: 22,
+  celdaIcono: 48,
+  globo: 18, // globo de la campana
+  punto: 10, // punto de aviso sin leer
 } as const;
 
 /** Opacidad de un botón presionado o deshabilitado. */

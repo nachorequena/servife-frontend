@@ -9,6 +9,9 @@ interface Props {
   tamanio?: number;
 }
 
+/** Las iniciales escalan con el avatar (17 de 48 en el tamaño base). */
+const PROPORCION_TEXTO = 17 / 48;
+
 export function Avatar({ nombre, uri, tamanio = tamanios.avatar }: Props) {
   const dimension = { width: tamanio, height: tamanio, borderRadius: radios.pill };
   if (uri) {
@@ -16,7 +19,7 @@ export function Avatar({ nombre, uri, tamanio = tamanios.avatar }: Props) {
   }
   return (
     <View style={[estilos.iniciales, dimension]} accessibilityLabel={nombre}>
-      <Text style={estilos.texto}>{iniciales(nombre)}</Text>
+      <Text style={[estilos.texto, { fontSize: Math.round(tamanio * PROPORCION_TEXTO) }]}>{iniciales(nombre)}</Text>
     </View>
   );
 }

@@ -7,6 +7,8 @@ import { PerfilGestorScreen } from '../../gestor/PerfilGestorScreen';
 import { PerfilPropioScreen } from '../../prestador/PerfilPropioScreen';
 import { MiCuenta } from '../MiCuenta';
 
+jest.mock('../../prestador/MiServicio', () => ({ MiServicio: () => null }));
+
 jest.mock('../../../api/identidad', () => ({
   actualizarMiUsuario: jest.fn(),
   cambiarContrasenia: jest.fn(),
@@ -191,10 +193,9 @@ describe('pantallas de perfil', () => {
     expect(screen.queryByText(/Endpoints:/)).toBeNull();
   });
 
-  it('el prestador conserva su PantallaPendiente y suma Mi cuenta, con un solo Cerrar sesión', async () => {
+  it('el prestador muestra Mi cuenta, con un solo Cerrar sesión', async () => {
     mockUsuario = { ...cliente, rol: 'PRESTADOR', estadoValidacion: 'APROBADO' };
     await render(<PerfilPropioScreen />);
-    expect(screen.getByText('Endpoints: B7, B8, E7')).toBeTruthy();
     expect(screen.getByText('Estado de validación: Aprobado')).toBeTruthy();
     expect(screen.getAllByRole('button', { name: 'Cerrar sesión' })).toHaveLength(1);
   });

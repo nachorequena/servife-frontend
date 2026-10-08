@@ -37,3 +37,13 @@ export function formatearCentavos(centavos: number): string {
     minimumFractionDigits: centavos % 100 === 0 ? 0 : 2,
   }).format(centavos / 100);
 }
+
+const NOMBRES_DE_DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+/** [1, 3, 5] → "Lun, Mié, Vie" (1 = lunes … 7 = domingo; se ordenan). */
+export function nombresDeDias(dias: number[]): string {
+  return [...dias]
+    .sort((a, b) => a - b)
+    .map((dia) => NOMBRES_DE_DIAS[dia - 1])
+    .join(', ');
+}
