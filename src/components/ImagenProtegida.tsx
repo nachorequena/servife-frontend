@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View, type ImageStyle, type StyleProp } from 'react-native';
 
 import { urlDeArchivo } from '../api/archivos';
@@ -24,15 +24,30 @@ export function ImagenProtegida({ uuid, estilo, accessibilityLabel }: Props) {
   const [estado, setEstado] = useState<Estado>('normal');
   const token = obtenerAccessToken();
 
-  useEffect(() => setEstado('normal'), [uuid]);
+  const uuidVigente = useRef(uuid);
+
+  useEffect(() => {
+    uuidVigente.current = uuid;
+    setEstado('normal');
+  }, [uuid]);
 
   const alFallar = () => {
     if (estado !== 'normal') {
       setEstado('fallo');
       return;
     }
+    const actual = obtenerAccessToken();
+    if (actual && actual !== token) {
+      setEstado('reintento'); // otro componente ya renovó: alcanza con reintentar con el token vigente
+      return;
+    }
+    const uuidDelIntento = uuid;
     setEstado('renovando');
-    void renovarSesionParaRecursos().then((renovado) => setEstado(renovado ? 'reintento' : 'fallo'));
+    void renovarSesionParaRecursos().then((renovado) => {
+      if (uuidVigente.current === uuidDelIntento) {
+        setEstado(renovado ? 'reintento' : 'fallo');
+      }
+    });
   };
 
   if (estado === 'fallo') {

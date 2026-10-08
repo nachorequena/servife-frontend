@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ImagenProtegida } from '../ImagenProtegida';
 
@@ -71,5 +71,26 @@ describe('ImagenProtegida', () => {
     await screen.findByTestId('imagen-protegida-error');
     await rerender(<ImagenProtegida uuid="a-2" accessibilityLabel="Foto" />);
     expect((await screen.findByLabelText('Foto')).props.source.uri).toMatch(/\/archivos\/a-2$/);
+  });
+
+  it('ignora el resultado de una renovación vieja si cambió el uuid', async () => {
+    mockToken.mockReturnValue('tok');
+    let resolver: (v: boolean) => void = () => {};
+    mockRenovar.mockReturnValue(new Promise<boolean>((r) => (resolver = r)));
+    const { rerender } = await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
+    await fireEvent(screen.getByLabelText('Foto'), 'error');
+    await rerender(<ImagenProtegida uuid="a-2" accessibilityLabel="Foto" />);
+    await act(async () => resolver(false));
+    expect((await screen.findByLabelText('Foto')).props.source.uri).toMatch(/a-2$/);
+    expect(screen.queryByTestId('imagen-protegida-error')).toBeNull();
+  });
+
+  it('si el token ya cambió reintenta con el vigente sin renovar', async () => {
+    mockToken.mockReturnValue('viejo');
+    await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
+    mockToken.mockReturnValue('nuevo');
+    await fireEvent(screen.getByLabelText('Foto'), 'error');
+    expect(mockRenovar).not.toHaveBeenCalled();
+    expect((await screen.findByLabelText('Foto')).props.source.headers).toEqual({ Authorization: 'Bearer nuevo' });
   });
 });

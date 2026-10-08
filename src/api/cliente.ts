@@ -52,8 +52,7 @@ export async function pedir<T = unknown>(ruta: string, opciones: Opciones = {}):
       respuesta = await enviar(ruta, opciones);
     }
     if (!renovado || respuesta.status === 401) {
-      await limpiarTokens();
-      alExpirarSesion();
+      await expirarSesion();
       throw await ApiError.desde(respuesta);
     }
   }
@@ -101,14 +100,23 @@ function renovarUnaVez(): Promise<boolean> {
 
 /**
  * Para recursos que no pasan por pedir() (p. ej. <Image> con Authorization): renueva el access token una sola vez.
- * Devuelve true si se obtuvo uno nuevo; ante red caída o error del servidor devuelve false sin tocar la sesión.
+ * Devuelve true si se obtuvo uno nuevo; si la sesión está muerta la expira (como pedir()); ante red caída o error del servidor devuelve false sin tocar la sesión.
  */
 export async function renovarSesionParaRecursos(): Promise<boolean> {
   try {
-    return await renovarUnaVez();
+    const renovado = await renovarUnaVez();
+    if (!renovado) {
+      await expirarSesion(); // refresh vencido, revocado o inexistente: igual que en pedir()
+    }
+    return renovado;
   } catch {
-    return false;
+    return false; // error de red o del servidor: la sesión queda como estaba
   }
+}
+
+async function expirarSesion(): Promise<void> {
+  await limpiarTokens();
+  alExpirarSesion();
 }
 
 async function renovar(): Promise<boolean> {
