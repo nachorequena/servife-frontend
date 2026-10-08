@@ -1,8 +1,10 @@
+import { useNavigation } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { listarAvisos, marcarAvisoLeido, type Aviso } from '../../api/notificaciones';
 import { Button, EstadoVacio } from '../../components';
+import { useSesion } from '../../store/sesion';
 import { colores, espaciado, radios, tamanios, tipografia } from '../../theme';
 import { formatearFechaHora } from '../../utils/formato';
 
@@ -10,6 +12,8 @@ const TAMANIO_PAGINA = 20;
 
 /** Avisos dentro de la app (E11), compartida por los tres roles. */
 export function AvisosScreen() {
+  const navigation = useNavigation<{ navigate: (ruta: 'DetalleSolicitud', params: { uuidSolicitud: string }) => void }>();
+  const { sesion } = useSesion();
   const [items, setItems] = useState<Aviso[]>([]);
   const [pagina, setPagina] = useState(0);
   const [totalPaginas, setTotalPaginas] = useState(0);
@@ -88,10 +92,14 @@ export function AvisosScreen() {
   }, []);
 
   const abrir = (aviso: Aviso) => {
-    // Cuando el aviso trae `uuidSolicitud`, el Sprint 3 agrega acá la navegación al detalle.
-    if (aviso.leida) return;
-    fijarLeida(aviso.uuid, true);
-    marcarAvisoLeido(aviso.uuid).catch(() => fijarLeida(aviso.uuid, false));
+    if (!aviso.leida) {
+      fijarLeida(aviso.uuid, true);
+      marcarAvisoLeido(aviso.uuid).catch(() => fijarLeida(aviso.uuid, false));
+    }
+    // Cliente y prestador tienen la ruta DetalleSolicitud en su stack; el gestor no.
+    if (aviso.uuidSolicitud !== null && (sesion?.rol === 'CLIENTE' || sesion?.rol === 'PRESTADOR')) {
+      navigation.navigate('DetalleSolicitud', { uuidSolicitud: aviso.uuidSolicitud });
+    }
   };
 
   return (

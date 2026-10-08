@@ -51,6 +51,7 @@ export const bordes = {
 /** Tamaños fijos de elementos. No están en la maqueta con número: se agregaron como punto de partida. */
 export const tamanios = {
   avatar: 48,
+  avatarChico: 36, // tarjetas de solicitudes del prestador (.reqcard)
   avatarGrande: 132,
   icono: 22,
   celdaIcono: 48,

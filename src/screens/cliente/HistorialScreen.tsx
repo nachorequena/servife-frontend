@@ -1,16 +1,15 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { listarMisSolicitudes, type EstadoSolicitud, type SolicitudEnLista } from '../../api/solicitudes';
+import { type EstadoSolicitud } from '../../api/solicitudes';
 import { Avatar, Button, Card, Chip, EstadoVacio, EtiquetaDeEstado } from '../../components';
 import { useAvisoDeRuta } from '../../hooks/useAvisoDeRuta';
+import { useListaDeSolicitudes } from '../../hooks/useListaDeSolicitudes';
 import type { ClienteStackParams } from '../../navigation/tipos';
 import { colores, espaciado, tipografia } from '../../theme';
 import { formatearFechaSola } from '../../utils/formato';
-
-const TAMANIO_PAGINA = 20;
 
 const FILTROS: { etiqueta: string; estados?: EstadoSolicitud[] }[] = [
   { etiqueta: 'Todas' },
@@ -27,101 +26,9 @@ export function HistorialScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ClienteStackParams>>();
 
   const [filtro, setFiltro] = useState(0);
-  const [items, setItems] = useState<SolicitudEnLista[]>([]);
-  const [pagina, setPagina] = useState(0);
-  const [totalPaginas, setTotalPaginas] = useState(0);
-  const [cargando, setCargando] = useState(true);
-  const [cargandoMas, setCargandoMas] = useState(false);
-  const [refrescando, setRefrescando] = useState(false);
-  const [error, setError] = useState(false);
-  const [errorMas, setErrorMas] = useState(false);
-  const [errorAlActualizar, setErrorAlActualizar] = useState(false);
-  const [reintento, setReintento] = useState(0);
-  const solicitud = useRef(0);
-  const cargandoMasRef = useRef(false);
-  const esRefresco = useRef(false);
-  const primerFoco = useRef(true);
-
   const estados = FILTROS[filtro].estados;
-
-  // Toda consulta nueva (filtro, reintento, refresco o foco) pasa por acá y anula a la anterior.
-  useEffect(() => {
-    const id = ++solicitud.current;
-    const refresco = esRefresco.current;
-    esRefresco.current = false;
-    cargandoMasRef.current = false;
-    setCargandoMas(false);
-    setErrorMas(false);
-    setError(false);
-    setErrorAlActualizar(false);
-    setRefrescando(refresco);
-    setCargando(!refresco);
-    if (!refresco) setItems([]);
-    listarMisSolicitudes({ estados, page: 0, size: TAMANIO_PAGINA })
-      .then((resultado) => {
-        if (id !== solicitud.current) return;
-        setItems(resultado.contenido);
-        setPagina(resultado.pagina);
-        setTotalPaginas(resultado.totalPaginas);
-      })
-      .catch(() => {
-        if (id !== solicitud.current) return;
-        if (refresco) {
-          setErrorAlActualizar(true); // se conserva la lista
-          return;
-        }
-        setItems([]);
-        setError(true);
-      })
-      .finally(() => {
-        if (id !== solicitud.current) return;
-        setCargando(false);
-        setRefrescando(false);
-      });
-  }, [estados, reintento]);
-
-  // Al volver a la pestaña (p. ej. tras cancelar en el detalle) se recarga sin tapar la lista.
-  useFocusEffect(
-    useCallback(() => {
-      if (primerFoco.current) {
-        primerFoco.current = false;
-        return;
-      }
-      esRefresco.current = true;
-      setReintento((n) => n + 1);
-    }, []),
-  );
-
-  const cargarMas = () => {
-    if (cargandoMasRef.current || cargando || refrescando || error || pagina + 1 >= totalPaginas) return;
-    const id = solicitud.current;
-    cargandoMasRef.current = true;
-    setCargandoMas(true);
-    setErrorMas(false);
-    listarMisSolicitudes({ estados, page: pagina + 1, size: TAMANIO_PAGINA })
-      .then((resultado) => {
-        if (id !== solicitud.current) return;
-        setItems((actuales) => {
-          const existentes = new Set(actuales.map((s) => s.uuid));
-          return [...actuales, ...resultado.contenido.filter((s) => !existentes.has(s.uuid))];
-        });
-        setPagina(resultado.pagina);
-        setTotalPaginas(resultado.totalPaginas);
-      })
-      .catch(() => {
-        if (id === solicitud.current) setErrorMas(true);
-      })
-      .finally(() => {
-        if (id !== solicitud.current) return;
-        cargandoMasRef.current = false;
-        setCargandoMas(false);
-      });
-  };
-
-  const refrescar = () => {
-    esRefresco.current = true;
-    setReintento((n) => n + 1);
-  };
+  const { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar } =
+    useListaDeSolicitudes(estados);
 
   return (
     <View style={estilos.pantalla}>
@@ -143,7 +50,7 @@ export function HistorialScreen() {
       ) : error && items.length === 0 ? (
         <View style={estilos.error}>
           <Text style={estilos.textoError}>No pudimos cargar tus solicitudes.</Text>
-          <Button etiqueta="Reintentar" onPress={() => setReintento((n) => n + 1)} />
+          <Button etiqueta="Reintentar" onPress={reintentar} />
         </View>
       ) : (
         <FlatList
