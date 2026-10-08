@@ -56,6 +56,7 @@ export const tamanios = {
   celdaIcono: 48,
   globo: 18, // globo de la campana
   punto: 10, // punto de aviso sin leer
+  miniatura: 72, // miniatura de imagen adjunta
 } as const;
 
 /** Opacidad de un botón presionado o deshabilitado. */

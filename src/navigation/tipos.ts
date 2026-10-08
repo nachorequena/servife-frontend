@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 import type { RolRegistrable } from '../api/identidad';
 
 /**
@@ -16,12 +18,12 @@ export type AccesoParams = {
 export type ClienteTabsParams = {
   Inicio: undefined;
   Mensajes: undefined;
-  Historial: undefined;
+  Historial: { aviso?: string } | undefined;
   Perfil: undefined;
 };
 
 export type ClienteStackParams = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<ClienteTabsParams> | undefined;
   Filtros: undefined;
   PerfilPrestador: { uuidPrestador: string };
   FormularioSolicitud: { uuidPrestador: string };
