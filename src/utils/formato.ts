@@ -47,3 +47,26 @@ export function nombresDeDias(dias: number[]): string {
     .map((dia) => NOMBRES_DE_DIAS[dia - 1])
     .join(', ');
 }
+
+/** "2026-09-18" → "18/09/2026". Fecha sola: se parte el texto, nunca pasa por Date ni por zona horaria. */
+export function formatearFechaSola(fecha: string): string {
+  const [anio, mes, dia] = fecha.split('-');
+  return `${dia}/${mes}/${anio}`;
+}
+
+/** Hoy en Argentina como "AAAA-MM-DD" (a las 22:30 ART sigue siendo el día argentino aunque en UTC ya sea mañana). */
+export function hoyEnArgentina(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA_ARGENTINA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/** "2026-09-18" → 5. 1 = lunes … 7 = domingo; se calcula con Date.UTC para no depender de la zona del dispositivo. */
+export function diaDeSemana(fecha: string): number {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const diaJs = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay(); // 0 = domingo
+  return diaJs === 0 ? 7 : diaJs;
+}

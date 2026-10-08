@@ -1,4 +1,12 @@
-import { formatearCentavos, formatearFecha, formatearFechaHora, nombresDeDias } from '../formato';
+import {
+  diaDeSemana,
+  formatearCentavos,
+  formatearFecha,
+  formatearFechaHora,
+  formatearFechaSola,
+  hoyEnArgentina,
+  nombresDeDias,
+} from '../formato';
 
 describe('formato', () => {
   it('muestra una fecha UTC en hora de Argentina (UTC-3)', () => {
@@ -27,5 +35,30 @@ describe('nombresDeDias', () => {
 
   it('sin días devuelve texto vacío', () => {
     expect(nombresDeDias([])).toBe('');
+  });
+});
+
+describe('fecha sola (AAAA-MM-DD)', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('formatearFechaSola no se corre por la zona horaria', () => {
+    expect(formatearFechaSola('2026-09-18')).toBe('18/09/2026');
+    expect(formatearFechaSola('2026-01-01')).toBe('01/01/2026');
+  });
+
+  it('hoyEnArgentina a las 22:30 ART (01:30 UTC del día siguiente) sigue siendo el día argentino', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-19T01:30:00Z'));
+    expect(hoyEnArgentina()).toBe('2026-09-18');
+  });
+
+  it('hoyEnArgentina a las 00:30 ART ya es el día nuevo', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-19T03:30:00Z'));
+    expect(hoyEnArgentina()).toBe('2026-09-19');
+  });
+
+  it('diaDeSemana: 1 = lunes … 7 = domingo', () => {
+    expect(diaDeSemana('2026-09-14')).toBe(1); // lunes
+    expect(diaDeSemana('2026-09-18')).toBe(5); // viernes
+    expect(diaDeSemana('2026-09-20')).toBe(7); // domingo
   });
 });
