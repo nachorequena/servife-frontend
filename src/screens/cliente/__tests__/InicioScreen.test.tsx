@@ -177,4 +177,74 @@ describe('InicioScreen', () => {
     await fireEvent.press(screen.getByLabelText('Abrir filtros'));
     expect(mockNavigate).toHaveBeenCalledWith('Filtros');
   });
+  it('un refresco en vuelo superado por una consulta nueva no deja el spinner ni bloquea el paginado', async () => {
+    jest.useFakeTimers();
+    try {
+      mockBuscar.mockResolvedValueOnce(pagina([prestador(1)], 0, 2));
+      await renderizar();
+      await act(async () => {});
+      const lista = screen.getByTestId('lista-prestadores');
+      mockBuscar.mockReturnValueOnce(new Promise(() => {}));
+      await act(async () => {
+        lista.props.refreshControl.props.onRefresh();
+      });
+      mockBuscar.mockResolvedValueOnce(pagina([prestador(3)], 0, 2));
+      await fireEvent.changeText(screen.getByPlaceholderText('Buscar'), 'plo');
+      await act(async () => {
+        jest.advanceTimersByTime(400);
+      });
+      expect(screen.getByText('Nombre3 Apellido3')).toBeOnTheScreen();
+      expect(screen.getByTestId('lista-prestadores').props.refreshControl.props.refreshing).toBe(false);
+      mockBuscar.mockResolvedValueOnce(pagina([prestador(4)], 1, 2));
+      await fireEvent(screen.getByTestId('lista-prestadores'), 'endReached');
+      expect(screen.getByText('Nombre4 Apellido4')).toBeOnTheScreen();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('si una consulta nueva falla no deja la lista vieja: muestra el error', async () => {
+    jest.useFakeTimers();
+    try {
+      mockBuscar.mockResolvedValueOnce(pagina([prestador(1)]));
+      await renderizar();
+      await act(async () => {});
+      mockBuscar.mockRejectedValueOnce(new Error('red'));
+      await fireEvent.changeText(screen.getByPlaceholderText('Buscar'), 'plo');
+      await act(async () => {
+        jest.advanceTimersByTime(400);
+      });
+      expect(screen.getByText('No pudimos cargar los prestadores.')).toBeOnTheScreen();
+      expect(screen.queryByText('Nombre1 Apellido1')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('si falla una página siguiente conserva la lista y ofrece reintentar', async () => {
+    mockBuscar
+      .mockResolvedValueOnce(pagina([prestador(1)], 0, 2))
+      .mockRejectedValueOnce(new Error('red'))
+      .mockResolvedValueOnce(pagina([prestador(2)], 1, 2));
+    await renderizar();
+    await fireEvent(await screen.findByTestId('lista-prestadores'), 'endReached');
+    expect(await screen.findByText('No pudimos cargar más.')).toBeOnTheScreen();
+    expect(screen.getByText('Nombre1 Apellido1')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Nombre2 Apellido2')).toBeOnTheScreen();
+  });
+
+  it('dos endReached seguidos no piden la misma página dos veces', async () => {
+    let resolver: (p: Pagina<PrestadorEnLista>) => void = () => {};
+    mockBuscar
+      .mockResolvedValueOnce(pagina([prestador(1)], 0, 3))
+      .mockReturnValueOnce(new Promise((r) => (resolver = r)));
+    await renderizar();
+    const lista = await screen.findByTestId('lista-prestadores');
+    await fireEvent(lista, 'endReached');
+    await fireEvent(lista, 'endReached');
+    expect(mockBuscar).toHaveBeenCalledTimes(2);
+    await act(async () => resolver(pagina([prestador(1), prestador(2)], 1, 3)));
+    expect(screen.getAllByText('Nombre1 Apellido1')).toHaveLength(1);
+  });
 });

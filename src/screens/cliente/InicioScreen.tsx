@@ -37,7 +37,10 @@ export function InicioScreen() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState(false);
   const [reintento, setReintento] = useState(0);
+  const [errorMas, setErrorMas] = useState(false);
   const solicitud = useRef(0);
+  const cargandoMasRef = useRef(false);
+  const esRefresco = useRef(false);
 
   useEffect(() => {
     const recortado = texto.trim();
@@ -65,11 +68,19 @@ export function InicioScreen() {
   );
 
   // Primera página: se espera a saber si hay ubicación para no pedir dos veces.
+  // Una consulta nueva (texto, filtros, reintento o refresco) siempre pasa por acá y anula a la anterior.
   useEffect(() => {
     if (estado === 'pidiendo') return;
     const id = ++solicitud.current;
-    setCargando(true);
+    const refresco = esRefresco.current;
+    esRefresco.current = false;
+    cargandoMasRef.current = false;
+    setCargandoMas(false);
+    setErrorMas(false);
     setError(false);
+    setRefrescando(refresco);
+    setCargando(!refresco);
+    if (!refresco) setItems([]);
     pedirPagina(0)
       .then((resultado) => {
         if (id !== solicitud.current) return;
@@ -78,47 +89,46 @@ export function InicioScreen() {
         setTotalPaginas(resultado.totalPaginas);
       })
       .catch(() => {
-        if (id === solicitud.current) setError(true);
+        if (id !== solicitud.current) return;
+        setItems([]);
+        setError(true);
       })
       .finally(() => {
-        if (id === solicitud.current) setCargando(false);
+        if (id !== solicitud.current) return;
+        setCargando(false);
+        setRefrescando(false);
       });
   }, [estado, pedirPagina, reintento]);
 
   const cargarMas = () => {
-    if (cargando || cargandoMas || refrescando || error || pagina + 1 >= totalPaginas) return;
+    if (cargandoMasRef.current || cargando || refrescando || error || pagina + 1 >= totalPaginas) return;
     const id = solicitud.current;
+    cargandoMasRef.current = true;
     setCargandoMas(true);
+    setErrorMas(false);
     pedirPagina(pagina + 1)
       .then((resultado) => {
         if (id !== solicitud.current) return;
-        setItems((actuales) => [...actuales, ...resultado.contenido]);
+        setItems((actuales) => {
+          const existentes = new Set(actuales.map((p) => p.uuid));
+          return [...actuales, ...resultado.contenido.filter((p) => !existentes.has(p.uuid))];
+        });
         setPagina(resultado.pagina);
         setTotalPaginas(resultado.totalPaginas);
       })
       .catch(() => {
-        // Se conserva lo ya cargado; el próximo scroll al final vuelve a intentar.
+        if (id === solicitud.current) setErrorMas(true);
       })
-      .finally(() => setCargandoMas(false));
+      .finally(() => {
+        if (id !== solicitud.current) return;
+        cargandoMasRef.current = false;
+        setCargandoMas(false);
+      });
   };
 
   const refrescar = () => {
-    const id = ++solicitud.current;
-    setRefrescando(true);
-    pedirPagina(0)
-      .then((resultado) => {
-        if (id !== solicitud.current) return;
-        setItems(resultado.contenido);
-        setPagina(resultado.pagina);
-        setTotalPaginas(resultado.totalPaginas);
-        setError(false);
-      })
-      .catch(() => {
-        if (id === solicitud.current) setError(true);
-      })
-      .finally(() => {
-        if (id === solicitud.current) setRefrescando(false);
-      });
+    esRefresco.current = true;
+    setReintento((n) => n + 1);
   };
 
   const limpiarBusqueda = () => {
@@ -130,7 +140,7 @@ export function InicioScreen() {
     <View style={estilos.pantalla}>
       <Text style={estilos.titulo}>Inicio</Text>
       <View style={estilos.buscador}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Abrir filtros" onPress={() => navigation.navigate('Filtros')}>
+        <Pressable hitSlop={espaciado.s} accessibilityRole="button" accessibilityLabel="Abrir filtros" onPress={() => navigation.navigate('Filtros')}>
           <Text style={estilos.icono}>▼</Text>
         </Pressable>
         <TextInput
@@ -142,7 +152,7 @@ export function InicioScreen() {
           returnKeyType="search"
           autoCorrect={false}
         />
-        <Pressable accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" onPress={limpiarBusqueda}>
+        <Pressable hitSlop={espaciado.s} accessibilityRole="button" accessibilityLabel="Limpiar búsqueda" onPress={limpiarBusqueda}>
           <Text style={estilos.icono}>✕</Text>
         </Pressable>
       </View>
@@ -171,7 +181,16 @@ export function InicioScreen() {
           refreshing={refrescando}
           onRefresh={refrescar}
           ListEmptyComponent={<EstadoVacio mensaje="No hay prestadores disponibles con esos filtros." />}
-          ListFooterComponent={cargandoMas ? <ActivityIndicator color={colores.verde} /> : null}
+          ListFooterComponent={
+            errorMas ? (
+              <View style={estilos.error}>
+                <Text style={estilos.textoError}>No pudimos cargar más.</Text>
+                <Button etiqueta="Reintentar" variante="terciario" onPress={cargarMas} />
+              </View>
+            ) : cargandoMas ? (
+              <ActivityIndicator color={colores.verde} />
+            ) : null
+          }
         />
       )}
     </View>

@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import * as Location from 'expo-location';
 
 import { useUbicacion } from '../useUbicacion';
@@ -41,5 +41,21 @@ describe('useUbicacion', () => {
     const { result } = await renderHook(() => useUbicacion());
     await waitFor(() => expect(result.current.estado).toBe('error'));
     expect(result.current.ubicacion).toBeNull();
+  });
+
+  it('si la posición tarda más de 8 s pasa a error sin ubicación', async () => {
+    jest.useFakeTimers();
+    try {
+      mockPermiso.mockResolvedValue({ status: 'granted' });
+      mockPosicion.mockReturnValue(new Promise(() => {}));
+      const { result } = await renderHook(() => useUbicacion());
+      await act(async () => {
+        jest.advanceTimersByTime(8000);
+      });
+      expect(result.current.estado).toBe('error');
+      expect(result.current.ubicacion).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

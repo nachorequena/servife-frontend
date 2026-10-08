@@ -6,6 +6,9 @@ export interface Coordenadas {
   lng: number;
 }
 
+/** Tiempo máximo para obtener la posición; pasado ese plazo se sigue sin ubicación. */
+const TIMEOUT_MS = 8000;
+
 export type EstadoUbicacion = 'pidiendo' | 'concedida' | 'denegada' | 'error';
 
 /**
@@ -27,7 +30,11 @@ export function useUbicacion(): { ubicacion: Coordenadas | null; estado: EstadoU
       try {
         const permiso = await Location.requestForegroundPermissionsAsync();
         if (permiso.status !== 'granted') return terminar(null, 'denegada');
-        const posicion = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const ultima =
+          typeof Location.getLastKnownPositionAsync === 'function'
+            ? await Location.getLastKnownPositionAsync().catch(() => null)
+            : null;
+        const posicion = ultima ?? (await conPlazo(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })));
         terminar({ lat: posicion.coords.latitude, lng: posicion.coords.longitude }, 'concedida');
       } catch {
         terminar(null, 'error');
@@ -39,4 +46,20 @@ export function useUbicacion(): { ubicacion: Coordenadas | null; estado: EstadoU
   }, []);
 
   return resultado;
+}
+
+function conPlazo<T>(promesa: Promise<T>): Promise<T> {
+  return new Promise<T>((resolver, rechazar) => {
+    const temporizador = setTimeout(() => rechazar(new Error('Tiempo de espera agotado')), TIMEOUT_MS);
+    promesa.then(
+      (valor) => {
+        clearTimeout(temporizador);
+        resolver(valor);
+      },
+      (error) => {
+        clearTimeout(temporizador);
+        rechazar(error);
+      },
+    );
+  });
 }
