@@ -7,12 +7,12 @@ import { confirmarRecuperacion, recuperarContrasenia } from '../../api/identidad
 import { Button, Input } from '../../components';
 import type { AccesoParams } from '../../navigation/tipos';
 import { colores, espaciado, tipografia } from '../../theme';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
 type Props = NativeStackScreenProps<AccesoParams, 'Restablecer'>;
 
 const REGLA_DE_CONTRASENIA = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
 const MENSAJE_DE_CONTRASENIA = 'mínimo 8 caracteres, con al menos una letra y un número';
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 const CAMPOS_CONOCIDOS = ['email', 'codigo', 'contraseniaNueva'];
 
 /**

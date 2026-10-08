@@ -7,10 +7,9 @@ import { Button, Input } from '../../components';
 import type { AccesoParams } from '../../navigation/tipos';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
 type Props = NativeStackScreenProps<AccesoParams, 'Ingresar'>;
-
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 
 /**
  * Inicio de sesión · CU02 · A2, A4. Único login para los tres roles: el rol viaja en la cuenta.

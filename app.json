@@ -30,6 +30,12 @@
         {
           "locationWhenInUsePermission": "ServiFe usa tu ubicación para mostrarte prestadores cerca."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ServiFe usa tus fotos para adjuntarlas a la solicitud."
+        }
       ]
     ]
   }

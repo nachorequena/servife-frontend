@@ -32,7 +32,3 @@ export const actualizarPublicacion = (uuid: string, cuerpo: unknown) =>
 /** D6 · DELETE /publicaciones/{uuid} · CU10 · Prestador. */
 export const eliminarPublicacion = (uuid: string) =>
   pedir(`/publicaciones/${uuid}`, { metodo: 'DELETE' });
-
-/** D7 · POST /archivos · CU03, CU06, CU10. Multipart; 413 si excede el tamaño. */
-export const subirArchivo = (formulario: FormData) =>
-  pedir('/archivos', { metodo: 'POST', cuerpo: formulario });

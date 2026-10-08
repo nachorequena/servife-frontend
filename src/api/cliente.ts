@@ -14,7 +14,7 @@ import type { TokensDeSesion } from './identidad';
  * - Agrega Authorization: Bearer <access>.
  * - Ante un 401 intenta renovar el token una sola vez y reintenta; si falla, limpia la sesión
  *   y avisa para mandar a login (.ai/07-security.md).
- * - Cada request tiene un tope de 10 s; al vencer falla como un error de red (no ApiError) y no toca los tokens.
+ * - Cada request tiene un tope de 10 s (configurable con tiempoMaximoMs); al vencer falla como un error de red (no ApiError) y no toca los tokens.
  * - Cualquier respuesta no 2xx se lanza como ApiError con el formato único de error.
  */
 
@@ -32,6 +32,8 @@ export interface Opciones {
   consulta?: Record<string, ValorDeConsulta | ValorDeConsulta[]>;
   /** Endpoints públicos (/auth/login, /auth/registro...): sin Bearer y sin refresh. */
   publico?: boolean;
+  /** Tope de esta request en ms; por defecto 10 s (las subidas de archivos piden más). */
+  tiempoMaximoMs?: number;
 }
 
 let alExpirarSesion: () => void = () => {};
@@ -52,8 +54,7 @@ export async function pedir<T = unknown>(ruta: string, opciones: Opciones = {}):
       respuesta = await enviar(ruta, opciones);
     }
     if (!renovado || respuesta.status === 401) {
-      await limpiarTokens();
-      alExpirarSesion();
+      await expirarSesion();
       throw await ApiError.desde(respuesta);
     }
   }
@@ -67,7 +68,7 @@ export async function pedir<T = unknown>(ruta: string, opciones: Opciones = {}):
   return (await respuesta.json()) as T;
 }
 
-async function enviar(ruta: string, { metodo = 'GET', cuerpo, consulta, publico }: Opciones): Promise<Response> {
+async function enviar(ruta: string, { metodo = 'GET', cuerpo, consulta, publico, tiempoMaximoMs = TIEMPO_MAXIMO_MS }: Opciones): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   const esArchivo = typeof FormData !== 'undefined' && cuerpo instanceof FormData;
   if (cuerpo !== undefined && !esArchivo) {
@@ -78,7 +79,7 @@ async function enviar(ruta: string, { metodo = 'GET', cuerpo, consulta, publico 
     headers.Authorization = `Bearer ${token}`;
   }
   const cancelador = new AbortController();
-  const temporizador = setTimeout(() => cancelador.abort(), TIEMPO_MAXIMO_MS);
+  const temporizador = setTimeout(() => cancelador.abort(), tiempoMaximoMs);
   try {
     return await fetch(URL_BASE + ruta + armarConsulta(consulta), {
       method: metodo,
@@ -97,6 +98,27 @@ function renovarUnaVez(): Promise<boolean> {
     renovacionEnCurso = null;
   });
   return renovacionEnCurso;
+}
+
+/**
+ * Para recursos que no pasan por pedir() (p. ej. <Image> con Authorization): renueva el access token una sola vez.
+ * Devuelve true si se obtuvo uno nuevo; si la sesión está muerta la expira (como pedir()); ante red caída o error del servidor devuelve false sin tocar la sesión.
+ */
+export async function renovarSesionParaRecursos(): Promise<boolean> {
+  try {
+    const renovado = await renovarUnaVez();
+    if (!renovado) {
+      await expirarSesion(); // refresh vencido, revocado o inexistente: igual que en pedir()
+    }
+    return renovado;
+  } catch {
+    return false; // error de red o del servidor: la sesión queda como estaba
+  }
+}
+
+async function expirarSesion(): Promise<void> {
+  await limpiarTokens();
+  alExpirarSesion();
 }
 
 async function renovar(): Promise<boolean> {

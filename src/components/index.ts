@@ -5,6 +5,8 @@ export { Card } from './Card';
 export { Chip } from './Chip';
 export { CerrarSesion } from './CerrarSesion';
 export { EstadoVacio } from './EstadoVacio';
+export { EtiquetaDeEstado } from './EtiquetaDeEstado';
+export { ImagenProtegida } from './ImagenProtegida';
 export { Input } from './Input';
 export { Logo } from './Logo';
 export { PantallaPendiente } from './PantallaPendiente';

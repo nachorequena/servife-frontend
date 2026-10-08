@@ -1,6 +1,6 @@
-import { PantallaPendiente } from '../../components';
+import { DetalleSolicitudDeRuta } from '../compartidas/DetalleSolicitud';
 
-/** Estado, fecha y dirección de una solicitud. */
+/** Estado, datos y acciones de una solicitud (D10, provisorio). */
 export function DetalleSolicitudScreen() {
-  return <PantallaPendiente titulo="Detalle de la solicitud" respaldo="D10" endpoints={['C3']} sinDisenio />;
+  return <DetalleSolicitudDeRuta />;
 }

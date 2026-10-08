@@ -16,8 +16,8 @@ import { Button, Chip, Input } from '../../components';
 import { obtenerUbicacionActual, type Coordenadas } from '../../hooks/useUbicacion';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 const MENSAJE_DE_CARGA = 'No pudimos cargar tu servicio. Revisá tu conexión e intentá de nuevo.';
 const MENSAJE_DE_RADIO = 'tiene que ser un número entre 1 y 100';
 const CAMPOS = ['idTipoServicio', 'zona', 'lat', 'lng', 'radioKm', 'descripcion', 'dias'];

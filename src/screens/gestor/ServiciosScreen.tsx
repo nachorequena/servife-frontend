@@ -5,17 +5,11 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { eliminarTipoServicio, listarTiposServicio, type TipoServicio } from '../../api/catalogo';
-import { ApiError } from '../../api/errores';
 import { Button, Card, EstadoVacio } from '../../components';
 import type { NombreDeIcono } from '../../navigation/iconos';
 import type { GestorStackParams } from '../../navigation/tipos';
 import { colores, espaciado, tamanios, tipografia } from '../../theme';
-
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
-
-function mensajeDe(e: unknown): string {
-  return e instanceof ApiError ? e.message : MENSAJE_DE_RED;
-}
+import { mensajeDe } from '../../utils/errores';
 
 /** Tipos de servicio · CU13 · B1, B4 (alta y edición en FormularioTipoServicio). Provisoria: sin maqueta (D10). */
 export function ServiciosScreen() {

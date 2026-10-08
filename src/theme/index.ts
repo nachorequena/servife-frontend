@@ -51,11 +51,13 @@ export const bordes = {
 /** Tamaños fijos de elementos. No están en la maqueta con número: se agregaron como punto de partida. */
 export const tamanios = {
   avatar: 48,
+  avatarChico: 36, // tarjetas de solicitudes del prestador (.reqcard)
   avatarGrande: 132,
   icono: 22,
   celdaIcono: 48,
   globo: 18, // globo de la campana
   punto: 10, // punto de aviso sin leer
+  miniatura: 72, // miniatura de imagen adjunta
 } as const;
 
 /** Opacidad de un botón presionado o deshabilitado. */

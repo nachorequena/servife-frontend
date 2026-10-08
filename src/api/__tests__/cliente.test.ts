@@ -177,6 +177,18 @@ describe('cliente HTTP', () => {
       expect(mockAlmacen.get('servife.refreshToken')).toBe('refresh-1');
     });
 
+    it('con tiempoMaximoMs usa ese tope en lugar de los 10 s', async () => {
+      fetchMock.mockImplementation(fetchColgado);
+
+      const resultado = pedir('/archivos', { metodo: 'POST', tiempoMaximoMs: 60_000 }).catch((e: unknown) => e);
+      await jest.advanceTimersByTimeAsync(59_999);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+
+      expect(await resultado).toBeInstanceOf(Error);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    });
+
     it('una respuesta a tiempo no se cancela', async () => {
       fetchMock.mockResolvedValueOnce(respuesta(200, { ok: 1 }));
 

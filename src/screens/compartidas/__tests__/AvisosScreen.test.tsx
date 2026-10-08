@@ -26,7 +26,14 @@ function pagina(contenido: Aviso[], numero = 0, totalPaginas = 1): Pagina<Aviso>
   return { contenido, pagina: numero, tamanio: 20, totalElementos: contenido.length, totalPaginas };
 }
 
+const mockNavigate = jest.fn();
+let mockRol = 'CLIENTE';
+jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: mockNavigate }) }));
+jest.mock('../../../store/sesion', () => ({ useSesion: () => ({ sesion: { rol: mockRol } }) }));
+
 beforeEach(() => {
+  mockNavigate.mockReset();
+  mockRol = 'CLIENTE';
   mockListar.mockReset();
   mockMarcar.mockReset();
 });
@@ -71,6 +78,41 @@ describe('AvisosScreen', () => {
     await render(<AvisosScreen />);
     await fireEvent.press(await screen.findByText('Título 1'));
     expect(mockMarcar).not.toHaveBeenCalled();
+  });
+
+  it.each(['CLIENTE', 'PRESTADOR'])('un aviso con solicitud lo marca y abre el detalle (%s)', async (rol) => {
+    mockRol = rol;
+    mockListar.mockResolvedValue(pagina([aviso(1, { uuidSolicitud: 'sol-1' })]));
+    mockMarcar.mockResolvedValue(undefined);
+    await render(<AvisosScreen />);
+    await fireEvent.press(await screen.findByText('Título 1'));
+    expect(mockMarcar).toHaveBeenCalledWith('a1');
+    expect(mockNavigate).toHaveBeenCalledWith('DetalleSolicitud', { uuidSolicitud: 'sol-1' });
+  });
+
+  it('un aviso ya leído con solicitud también abre el detalle', async () => {
+    mockListar.mockResolvedValue(pagina([aviso(1, { uuidSolicitud: 'sol-1', leida: true })]));
+    await render(<AvisosScreen />);
+    await fireEvent.press(await screen.findByText('Título 1'));
+    expect(mockMarcar).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('DetalleSolicitud', { uuidSolicitud: 'sol-1' });
+  });
+
+  it('el gestor no navega y un aviso sin solicitud tampoco', async () => {
+    mockRol = 'GESTOR';
+    mockListar.mockResolvedValue(pagina([aviso(1, { uuidSolicitud: 'sol-1' })]));
+    mockMarcar.mockResolvedValue(undefined);
+    await render(<AvisosScreen />);
+    await fireEvent.press(await screen.findByText('Título 1'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('un aviso sin solicitud no navega', async () => {
+    mockListar.mockResolvedValue(pagina([aviso(2)]));
+    mockMarcar.mockResolvedValue(undefined);
+    await render(<AvisosScreen />);
+    await fireEvent.press(await screen.findByText('Título 2'));
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('muestra el vacío', async () => {
