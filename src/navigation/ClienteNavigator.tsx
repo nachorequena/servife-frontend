@@ -17,6 +17,7 @@ import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealiza
 import { FiltrosProvider } from '../store/filtros';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
+import { useOpcionesDePila } from './opcionesDePila';
 import type { ClienteStackParams, ClienteTabsParams } from './tipos';
 
 const Tab = createBottomTabNavigator<ClienteTabsParams>();
@@ -36,9 +37,10 @@ function ClienteTabs() {
 
 /** Las pantallas de detalle se apilan sobre las tabs. */
 export function ClienteNavigator() {
+  const opcionesDePila = useOpcionesDePila();
   return (
     <FiltrosProvider>
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={opcionesDePila}>
         <Stack.Screen name="Tabs" component={ClienteTabs} options={{ headerShown: false }} />
         <Stack.Screen name="Filtros" component={FiltrosScreen} />
         <Stack.Screen name="PerfilPrestador" component={PerfilPrestadorScreen} options={{ title: 'Prestador' }} />

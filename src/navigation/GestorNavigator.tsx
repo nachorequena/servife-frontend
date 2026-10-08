@@ -10,6 +10,7 @@ import { ServiciosScreen } from '../screens/gestor/ServiciosScreen';
 import { ValidacionesScreen } from '../screens/gestor/ValidacionesScreen';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
+import { useOpcionesDePila } from './opcionesDePila';
 import type { GestorStackParams, GestorTabsParams } from './tipos';
 
 const Tab = createBottomTabNavigator<GestorTabsParams>();
@@ -33,8 +34,9 @@ function GestorTabs() {
 
 /** Panel del gestor dentro de la app, protegido por rol. La navegación del gestor es lila. */
 export function GestorNavigator() {
+  const opcionesDePila = useOpcionesDePila();
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={opcionesDePila}>
       <Stack.Screen name="Tabs" component={GestorTabs} options={{ headerShown: false }} />
       <Stack.Screen name="FormularioTipoServicio" component={FormularioTipoServicio} options={{ title: 'Tipo de servicio' }} />
       <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />

@@ -15,7 +15,7 @@ test('la banda del logo empieza debajo de la barra de estado', async () => {
   expect(screen.getByTestId('barra-logo')).toHaveStyle({ paddingTop: 30 + espaciado.s });
 });
 
-test('"Prestador" abre el registro con el rol de prestador', async () => {
+test('"Prestador" abre el inicio de sesión como prestador', async () => {
   const navigation = { navigate: jest.fn() } as any;
   await render(
     <SafeAreaProvider initialMetrics={metricas}>
@@ -23,5 +23,5 @@ test('"Prestador" abre el registro con el rol de prestador', async () => {
     </SafeAreaProvider>,
   );
   await userEvent.setup().press(screen.getByRole('button', { name: 'Prestador' }));
-  expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'PRESTADOR' });
+  expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', { rol: 'PRESTADOR' });
 });

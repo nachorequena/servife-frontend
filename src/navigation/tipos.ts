@@ -10,7 +10,7 @@ import type { AccionSobreSolicitud } from '../api/solicitudes';
 
 export type AccesoParams = {
   Bienvenida: undefined;
-  Ingresar: { aviso?: string } | undefined;
+  Ingresar: { aviso?: string; rol?: RolRegistrable } | undefined;
   Registro: { rol?: RolRegistrable } | undefined;
   Recuperar: undefined;
   Restablecer: { email: string };

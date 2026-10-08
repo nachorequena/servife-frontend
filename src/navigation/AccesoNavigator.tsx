@@ -5,14 +5,16 @@ import { IngresarScreen } from '../screens/acceso/IngresarScreen';
 import { RecuperarScreen } from '../screens/acceso/RecuperarScreen';
 import { RegistroScreen } from '../screens/acceso/RegistroScreen';
 import { RestablecerScreen } from '../screens/acceso/RestablecerScreen';
+import { useOpcionesDePila } from './opcionesDePila';
 import type { AccesoParams } from './tipos';
 
 const Stack = createNativeStackNavigator<AccesoParams>();
 
 /** Sin sesión: bienvenida, login único para los tres roles y registro. */
 export function AccesoNavigator() {
+  const opcionesDePila = useOpcionesDePila();
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={opcionesDePila}>
       <Stack.Screen name="Bienvenida" component={BienvenidaScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Ingresar" component={IngresarScreen} options={{ title: 'Ingresar' }} />
       <Stack.Screen name="Registro" component={RegistroScreen} options={{ title: 'Registro' }} />

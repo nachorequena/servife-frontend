@@ -8,7 +8,7 @@ jest.mock('../../../store/sesion', () => ({ useSesion: () => ({ ingresar: mockIn
 
 const navigation = { navigate: jest.fn() } as any;
 
-async function montar(params?: { aviso?: string }) {
+async function montar(params?: { aviso?: string; rol?: 'CLIENTE' | 'PRESTADOR' }) {
   await render(<IngresarScreen navigation={navigation} route={{ key: 'i', name: 'Ingresar', params } as any} />);
 }
 
@@ -81,5 +81,11 @@ describe('IngresarScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('Recuperar');
     await usuario.press(screen.getByRole('link', { name: '¿No tenés cuenta? Registrate' }));
     expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'CLIENTE' });
+  });
+
+  it('si viene de "Prestador", el registro abre con el rol de prestador', async () => {
+    await montar({ rol: 'PRESTADOR' });
+    await userEvent.setup().press(screen.getByRole('link', { name: '¿No tenés cuenta? Registrate' }));
+    expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'PRESTADOR' });
   });
 });
