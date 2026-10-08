@@ -7,10 +7,9 @@ import { recuperarContrasenia } from '../../api/identidad';
 import { Button, Input } from '../../components';
 import type { AccesoParams } from '../../navigation/tipos';
 import { colores, espaciado, tipografia } from '../../theme';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
 type Props = NativeStackScreenProps<AccesoParams, 'Recuperar'>;
-
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 
 /**
  * Recuperar contraseña, paso 1 · CU02 · A8. Pide el correo y siempre avanza a Restablecer:

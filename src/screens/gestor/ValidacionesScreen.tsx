@@ -7,12 +7,7 @@ import { listarValidacionesPendientes, validarPrestador, type PrestadorPendiente
 import { Button, Card, EstadoVacio, Input } from '../../components';
 import { colores, espaciado, tipografia } from '../../theme';
 import { formatearFecha } from '../../utils/formato';
-
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
-
-function mensajeDe(e: unknown): string {
-  return e instanceof ApiError ? e.message : MENSAJE_DE_RED;
-}
+import { mensajeDe } from '../../utils/errores';
 
 /** Validaciones pendientes · CU14 · E5 y E6. Sin maqueta propia: lista simple con acentos lilas del gestor. */
 export function ValidacionesScreen() {

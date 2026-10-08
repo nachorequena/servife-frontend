@@ -10,8 +10,8 @@ import { Button, Input } from '../../components';
 import type { GestorStackParams } from '../../navigation/tipos';
 import { bordes, colores, espaciado, radios, tamanios, tipografia } from '../../theme';
 import { ICONOS_DE_SERVICIO } from '../../utils/iconosDeServicio';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 const CAMPOS = ['nombre', 'icono', 'requiereMatricula'];
 
 /** Alta y edición de un tipo de servicio · CU13 · B2 y B3. Provisoria: sin maqueta (D10). */

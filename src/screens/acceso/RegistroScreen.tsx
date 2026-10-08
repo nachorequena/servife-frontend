@@ -8,12 +8,12 @@ import { registrar, type RolRegistrable } from '../../api/identidad';
 import { Button, Input } from '../../components';
 import type { AccesoParams } from '../../navigation/tipos';
 import { colores, espaciado, tipografia } from '../../theme';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
 type Props = NativeStackScreenProps<AccesoParams, 'Registro'>;
 
 const REGLA_DE_CONTRASENIA = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
 const MENSAJE_DE_CONTRASENIA = 'mínimo 8 caracteres, con al menos una letra y un número';
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 const MENSAJE_DE_TIPOS = 'No pudimos cargar los servicios. Probá de nuevo.';
 const AVISOS: Record<RolRegistrable, string> = {
   CLIENTE: 'Cuenta creada. Ingresá con tu correo.',

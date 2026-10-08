@@ -6,10 +6,10 @@ import { actualizarMiUsuario, cambiarContrasenia, type EstadoValidacion } from '
 import { Avatar, Button, CerrarSesion, Input } from '../../components';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
+import { MENSAJE_DE_RED } from '../../utils/errores';
 
 const REGLA_DE_CONTRASENIA = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
 const MENSAJE_DE_CONTRASENIA = 'mínimo 8 caracteres, con al menos una letra y un número';
-const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 const FORMATO_DE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const CAMPOS_DE_PERFIL = ['nombreApellido', 'telefono', 'direccion', 'fecNacimiento'];
 const CAMPOS_DE_CLAVE = ['contraseniaActual', 'contraseniaNueva'];
