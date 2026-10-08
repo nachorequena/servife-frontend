@@ -133,7 +133,7 @@ export function AvisosScreen() {
 
 function FilaAviso({ aviso, onPress }: { aviso: Aviso; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={[estilos.fila, !aviso.leida && estilos.filaNoLeida]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={aviso.leida ? aviso.titulo : `${aviso.titulo}, sin leer`} onPress={onPress} style={[estilos.fila, !aviso.leida && estilos.filaNoLeida]}>
       {!aviso.leida ? <View testID="punto-no-leido" style={estilos.punto} /> : <View style={estilos.puntoVacio} />}
       <View style={estilos.texto}>
         <Text style={estilos.titulo}>{aviso.titulo}</Text>

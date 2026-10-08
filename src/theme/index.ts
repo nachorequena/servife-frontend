@@ -31,6 +31,7 @@ export const tipografia = {
   seccion: { fontSize: 17, fontWeight: '700' },
   cuerpo: { fontSize: 14, fontWeight: '400' },
   boton: { fontSize: 16, fontWeight: '700' },
+  globo: { fontSize: 11, fontWeight: '700' },
 } as const;
 
 /** Escala de márgenes y paddings. No está en la maqueta: se agregó para no escribir números sueltos. */

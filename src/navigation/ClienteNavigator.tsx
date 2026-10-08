@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { Campanita } from '../components/Campanita';
 import { DetalleSolicitudScreen } from '../screens/cliente/DetalleSolicitudScreen';
 import { FiltrosScreen } from '../screens/cliente/FiltrosScreen';
 import { FormularioSolicitudScreen } from '../screens/cliente/FormularioSolicitudScreen';
@@ -9,12 +10,11 @@ import { InicioScreen } from '../screens/cliente/InicioScreen';
 import { PerfilClienteScreen } from '../screens/cliente/PerfilClienteScreen';
 import { PerfilPrestadorScreen } from '../screens/cliente/PerfilPrestadorScreen';
 import { ValoracionScreen } from '../screens/cliente/ValoracionScreen';
+import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
 import { FiltrosProvider } from '../store/filtros';
-import { Campanita } from '../components/Campanita';
-import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
 import type { ClienteStackParams, ClienteTabsParams } from './tipos';
@@ -49,7 +49,7 @@ export function ClienteNavigator() {
           {({ route }) => <TrabajosRealizadosScreen soloLectura uuidPrestador={route.params.uuidPrestador} />}
         </Stack.Screen>
         <Stack.Screen name="Chat" component={ChatScreen} />
-        <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
+      <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
       </Stack.Navigator>
     </FiltrosProvider>
   );

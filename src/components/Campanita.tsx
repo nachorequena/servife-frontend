@@ -14,27 +14,34 @@ export function Campanita() {
   const navigation = useNavigation<{ navigate: (ruta: 'Avisos') => void }>();
   const [cantidad, setCantidad] = useState(0);
   const montada = useRef(true);
+  const pedido = useRef(0);
+
+  useEffect(() => {
+    montada.current = true;
+    return () => {
+      montada.current = false;
+    };
+  }, []);
 
   const consultar = useCallback(() => {
+    const id = ++pedido.current;
     contarAvisosNoLeidos()
       .then((resultado) => {
-        if (montada.current) setCantidad(resultado.cantidad);
+        if (montada.current && id === pedido.current) setCantidad(resultado.cantidad);
       })
       .catch(() => {
         // Falla silenciosa: se conserva el último valor conocido.
       });
   }, []);
 
-  useFocusEffect(consultar);
-
-  useEffect(() => {
-    montada.current = true;
-    const intervalo = setInterval(consultar, REFRESCO_MS);
-    return () => {
-      montada.current = false;
-      clearInterval(intervalo);
-    };
-  }, [consultar]);
+  // Solo consulta la instancia de la pantalla enfocada: al perder el foco se corta el intervalo.
+  useFocusEffect(
+    useCallback(() => {
+      consultar();
+      const intervalo = setInterval(consultar, REFRESCO_MS);
+      return () => clearInterval(intervalo);
+    }, [consultar]),
+  );
 
   return (
     <Pressable
@@ -68,5 +75,5 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numero: { ...tipografia.cuerpo, fontSize: 11, fontWeight: '700', color: colores.blanco },
+  numero: { ...tipografia.globo, color: colores.blanco },
 });

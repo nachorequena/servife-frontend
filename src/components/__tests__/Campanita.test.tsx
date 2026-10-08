@@ -5,10 +5,12 @@ import { Campanita } from '../Campanita';
 
 jest.mock('../../api/notificaciones', () => ({ contarAvisosNoLeidos: jest.fn() }));
 
+let mockEnfocada = true;
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
-  useFocusEffect: (efecto: () => void) => require('react').useEffect(efecto, [efecto]),
+  useFocusEffect: (efecto: () => void | (() => void)) =>
+    require('react').useEffect(() => (mockEnfocada ? efecto() : undefined), [efecto, mockEnfocada]),
 }));
 
 const mockContar = contarAvisosNoLeidos as jest.Mock;
@@ -16,6 +18,7 @@ const mockContar = contarAvisosNoLeidos as jest.Mock;
 beforeEach(() => {
   mockContar.mockReset();
   mockNavigate.mockReset();
+  mockEnfocada = true;
 });
 
 afterEach(() => {
@@ -65,6 +68,37 @@ describe('Campanita', () => {
       jest.advanceTimersByTime(90_000);
     });
     expect(mockContar.mock.calls.length).toBe(inicial + 1);
+  });
+
+  it('al perder el foco deja de consultar y al recuperarlo vuelve a hacerlo', async () => {
+    jest.useFakeTimers();
+    mockContar.mockResolvedValue({ cantidad: 1 });
+    const { rerender } = await render(<Campanita />);
+    mockEnfocada = false;
+    await rerender(<Campanita />);
+    const alPerderFoco = mockContar.mock.calls.length;
+    await act(async () => {
+      jest.advanceTimersByTime(90_000);
+    });
+    expect(mockContar.mock.calls.length).toBe(alPerderFoco);
+    mockEnfocada = true;
+    await rerender(<Campanita />);
+    expect(mockContar.mock.calls.length).toBe(alPerderFoco + 1);
+  });
+
+  it('una respuesta vieja no pisa a una más nueva', async () => {
+    jest.useFakeTimers();
+    let resolverVieja: (v: { cantidad: number }) => void = () => {};
+    mockContar
+      .mockReturnValueOnce(new Promise((resolver) => (resolverVieja = resolver)))
+      .mockResolvedValue({ cantidad: 5 });
+    await render(<Campanita />);
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+    expect(await screen.findByText('5')).toBeOnTheScreen();
+    await act(async () => resolverVieja({ cantidad: 2 }));
+    expect(screen.getByText('5')).toBeOnTheScreen();
   });
 
   it('si falla la consulta conserva el último valor', async () => {

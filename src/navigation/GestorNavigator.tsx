@@ -1,13 +1,13 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { Campanita } from '../components/Campanita';
+import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { DashboardScreen } from '../screens/gestor/DashboardScreen';
 import { FormularioTipoServicio } from '../screens/gestor/FormularioTipoServicio';
 import { PerfilGestorScreen } from '../screens/gestor/PerfilGestorScreen';
 import { ServiciosScreen } from '../screens/gestor/ServiciosScreen';
 import { ValidacionesScreen } from '../screens/gestor/ValidacionesScreen';
-import { Campanita } from '../components/Campanita';
-import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
 import type { GestorStackParams, GestorTabsParams } from './tipos';
