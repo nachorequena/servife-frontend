@@ -77,6 +77,29 @@ describe('cliente HTTP', () => {
     expect(obtenerAccessToken()).toBeNull();
   });
 
+  it('un refresh con error del servidor no borra la sesión', async () => {
+    fetchMock
+      .mockResolvedValueOnce(respuesta(401, error401))
+      .mockResolvedValueOnce(respuesta(500, { status: 500, codigo: 'ERROR_INTERNO', mensaje: 'Falló.', errores: [] }));
+
+    await expect(pedir('/solicitudes')).rejects.toMatchObject({ status: 500 });
+
+    expect(alExpirar).not.toHaveBeenCalled();
+    expect(obtenerAccessToken()).toBe('access-viejo');
+    expect(mockAlmacen.get('servife.refreshToken')).toBe('refresh-1');
+  });
+
+  it.each([401, 403])('un refresh que responde %s cierra la sesión y borra los tokens', async (status) => {
+    fetchMock
+      .mockResolvedValueOnce(respuesta(401, error401))
+      .mockResolvedValueOnce(respuesta(status, { status, codigo: 'REFRESH_INVALIDO', mensaje: 'x', errores: [] }));
+
+    await expect(pedir('/solicitudes')).rejects.toBeInstanceOf(ApiError);
+
+    expect(alExpirar).toHaveBeenCalledTimes(1);
+    expect(mockAlmacen.has('servife.refreshToken')).toBe(false);
+  });
+
   it('si el reintento vuelve a dar 401, no entra en loop', async () => {
     fetchMock
       .mockResolvedValueOnce(respuesta(401, error401))
@@ -124,5 +147,43 @@ describe('cliente HTTP', () => {
     await pedir('/prestadores', { consulta: { radioKm: 10, dias: [1, 3], orden: undefined } });
 
     expect(fetchMock.mock.calls[0][0]).toMatch(/\/prestadores\?radioKm=10&dias=1&dias=3$/);
+  });
+
+  describe('tiempo máximo', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    /** fetch que nunca responde y rechaza recién cuando se cancela, como el real. */
+    function fetchColgado(_url: string, init: RequestInit) {
+      return new Promise<Response>((_resolver, rechazar) => {
+        init.signal?.addEventListener('abort', () => rechazar(new Error('Aborted')));
+      });
+    }
+
+    it('a los 10 s cancela la request y falla como error de red, sin tocar los tokens', async () => {
+      fetchMock.mockImplementation(fetchColgado);
+
+      const resultado = pedir('/solicitudes').catch((e: unknown) => e);
+      await jest.advanceTimersByTimeAsync(9_999);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+
+      const error = await resultado;
+      expect(error).toBeInstanceOf(Error);
+      expect(error).not.toBeInstanceOf(ApiError);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+      expect(alExpirar).not.toHaveBeenCalled();
+      expect(obtenerAccessToken()).toBe('access-viejo');
+      expect(mockAlmacen.get('servife.refreshToken')).toBe('refresh-1');
+    });
+
+    it('una respuesta a tiempo no se cancela', async () => {
+      fetchMock.mockResolvedValueOnce(respuesta(200, { ok: 1 }));
+
+      await expect(pedir('/solicitudes')).resolves.toEqual({ ok: 1 });
+      await jest.advanceTimersByTimeAsync(20_000);
+
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+    });
   });
 });

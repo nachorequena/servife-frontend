@@ -17,8 +17,15 @@ export interface FiltrosDePrestadores extends ParametrosDePagina {
   orden?: string;
 }
 
-/** B1 · GET /tipos-servicio · CU04, CU13. */
-export const listarTiposServicio = () => pedir('/tipos-servicio');
+export interface TipoServicio {
+  uuid: string;
+  nombre: string;
+  icono: string | null;
+  requiereMatricula: boolean;
+}
+
+/** B1 · GET /tipos-servicio · CU04, CU13. Público: el registro lo usa antes de tener sesión. */
+export const listarTiposServicio = () => pedir<TipoServicio[]>('/tipos-servicio', { publico: true });
 
 /** B2 · POST /tipos-servicio · CU13 · Gestor. Incluye requiereMatricula (D01). */
 export const crearTipoServicio = (cuerpo: unknown) =>

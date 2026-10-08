@@ -56,8 +56,9 @@ npm run pantalla (para recorrer la app sin mouse; lo usan los agentes en las pru
     npm run pantalla -- atras               # botón Atrás
     npm run pantalla -- captura <png>       # captura de pantalla (guardala fuera del repo)
 
-En desarrollo, la pantalla Ingresar tiene botones "Entrar como CLIENTE / PRESTADOR / GESTOR" para
-navegar sin login real mientras el módulo A no esté. No existen en el build de producción.
+El login es real. Para entrar: registrate desde la app (Cliente o Prestador) o ingresá con el gestor
+inicial que sale de GESTOR_INICIAL_EMAIL y GESTOR_INICIAL_CONTRASENIA del .env del backend. Para
+recuperar la contraseña, el código de 6 dígitos llega a Mailpit: http://localhost:8025.
 
 ## Estructura
 

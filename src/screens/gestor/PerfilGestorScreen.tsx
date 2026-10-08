@@ -1,10 +1,6 @@
-import { CerrarSesionDesarrollo, PantallaPendiente } from '../../components';
+import { MiCuentaScreen } from '../compartidas/MiCuentaScreen';
 
-/** Perfil del gestor. */
+/** Perfil del gestor (provisorio hasta D10). */
 export function PerfilGestorScreen() {
-  return (
-    <PantallaPendiente titulo="Mi perfil" respaldo="D10" endpoints={['A4', 'A6', 'A7']} sinDisenio>
-      <CerrarSesionDesarrollo />
-    </PantallaPendiente>
-  );
+  return <MiCuentaScreen />;
 }

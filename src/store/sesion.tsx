@@ -1,18 +1,25 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { configurarAlExpirarSesion } from '../api/cliente';
-import { guardarTokens, limpiarTokens, type ParDeTokens } from '../api/tokens';
+import { ApiError } from '../api/errores';
+import { iniciarSesion, obtenerSesion, type Usuario } from '../api/identidad';
+import { guardarTokens, limpiarTokens, obtenerRefreshToken } from '../api/tokens';
 
 export type Rol = 'CLIENTE' | 'PRESTADOR' | 'GESTOR';
 
 export interface Sesion {
   rol: Rol;
+  usuario: Usuario;
 }
 
 interface ValorDeSesion {
   sesion: Sesion | null;
-  /** Después del login (A2). Sin tokens solo se usa en desarrollo, para navegar con datos mock. */
-  abrir: (sesion: Sesion, tokens?: ParDeTokens) => Promise<void>;
+  /** true hasta resolver el refresh token guardado (restauración al abrir la app). */
+  restaurando: boolean;
+  /** A2 → guardar tokens → A4 → sesión. Relanza el error para que la pantalla lo muestre. */
+  ingresar: (email: string, contrasenia: string) => Promise<void>;
+  /** Tras A6 (editar perfil). */
+  actualizarUsuario: (usuario: Usuario) => void;
   cerrar: () => Promise<void>;
 }
 
@@ -20,20 +27,58 @@ const ContextoDeSesion = createContext<ValorDeSesion | null>(null);
 
 /**
  * Quién está logueado y con qué rol; decide qué navegación se muestra.
- * TODO(módulo A): al abrir la app, si hay refresh token, restaurar la sesión con A4 (GET /auth/me).
+ * Al abrir la app, si hay refresh token, restaura la sesión con A4 (GET /auth/me): el cliente HTTP
+ * renueva el access ante un 401. Solo un 401/403 limpia los tokens; un fallo de red los conserva.
  */
 export function ProveedorDeSesion({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Sesion | null>(null);
+  const [restaurando, setRestaurando] = useState(true);
 
   useEffect(() => {
     configurarAlExpirarSesion(() => setSesion(null));
   }, []);
 
-  const abrir = useCallback(async (nueva: Sesion, tokens?: ParDeTokens) => {
-    if (tokens) {
-      await guardarTokens(tokens);
+  useEffect(() => {
+    let vigente = true;
+    async function restaurar() {
+      try {
+        if ((await obtenerRefreshToken()) === null) {
+          return;
+        }
+        const usuario = await obtenerSesion();
+        if (vigente) {
+          setSesion({ rol: usuario.rol, usuario });
+        }
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          await limpiarTokens();
+        }
+      } finally {
+        if (vigente) {
+          setRestaurando(false);
+        }
+      }
     }
-    setSesion(nueva);
+    void restaurar();
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  const ingresar = useCallback(async (email: string, contrasenia: string) => {
+    const { accessToken, refreshToken } = await iniciarSesion({ email, contrasenia });
+    await guardarTokens({ accessToken, refreshToken });
+    try {
+      const usuario = await obtenerSesion();
+      setSesion({ rol: usuario.rol, usuario });
+    } catch (error) {
+      await limpiarTokens().catch(() => {});
+      throw error;
+    }
+  }, []);
+
+  const actualizarUsuario = useCallback((usuario: Usuario) => {
+    setSesion((actual) => (actual ? { ...actual, usuario } : actual));
   }, []);
 
   const cerrar = useCallback(async () => {
@@ -41,7 +86,10 @@ export function ProveedorDeSesion({ children }: { children: ReactNode }) {
     setSesion(null);
   }, []);
 
-  const valor = useMemo(() => ({ sesion, abrir, cerrar }), [sesion, abrir, cerrar]);
+  const valor = useMemo(
+    () => ({ sesion, restaurando, ingresar, actualizarUsuario, cerrar }),
+    [sesion, restaurando, ingresar, actualizarUsuario, cerrar],
+  );
   return <ContextoDeSesion.Provider value={valor}>{children}</ContextoDeSesion.Provider>;
 }
 

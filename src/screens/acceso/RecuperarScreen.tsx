@@ -3,51 +3,49 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 
 import { ApiError } from '../../api/errores';
+import { recuperarContrasenia } from '../../api/identidad';
 import { Button, Input } from '../../components';
 import type { AccesoParams } from '../../navigation/tipos';
-import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
 
-type Props = NativeStackScreenProps<AccesoParams, 'Ingresar'>;
+type Props = NativeStackScreenProps<AccesoParams, 'Recuperar'>;
 
 const MENSAJE_DE_RED = 'No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.';
 
 /**
- * Inicio de sesión · CU02 · A2, A4. Único login para los tres roles: el rol viaja en la cuenta.
- * Los errores de campo (400) van bajo cada Input; credenciales inválidas o cuenta suspendida, bajo el botón.
+ * Recuperar contraseña, paso 1 · CU02 · A8. Pide el correo y siempre avanza a Restablecer:
+ * el backend responde 204 exista o no la cuenta, así que la app no revela nada.
  */
-export function IngresarScreen({ navigation, route }: Props) {
-  const { ingresar } = useSesion();
+export function RecuperarScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
-  const [contrasenia, setContrasenia] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [falloDeRed, setFalloDeRed] = useState(false);
 
-  async function continuar() {
+  async function enviarCodigo() {
     setEnviando(true);
     setError(null);
     setFalloDeRed(false);
     try {
-      await ingresar(email, contrasenia);
+      await recuperarContrasenia({ email });
+      navigation.navigate('Restablecer', { email });
     } catch (e) {
       if (e instanceof ApiError) {
         setError(e);
       } else {
         setFalloDeRed(true);
       }
+    } finally {
       setEnviando(false);
     }
   }
 
-  const mensajeGeneral =
-    error && !error.errorDe('email') && !error.errorDe('contrasenia') ? error.message : undefined;
+  const mensajeGeneral = error && !error.errorDe('email') ? error.message : undefined;
 
   return (
     <ScrollView contentContainerStyle={estilos.contenedor} keyboardShouldPersistTaps="handled">
-      {route.params?.aviso !== undefined && <Text style={estilos.aviso}>{route.params.aviso}</Text>}
-      <Text style={estilos.titulo}>Inicio de sesión</Text>
-      <Text style={estilos.texto}>Ingresá tu correo y tu contraseña</Text>
+      <Text style={estilos.titulo}>Recuperar contraseña</Text>
+      <Text style={estilos.texto}>Te mandamos un código de 6 dígitos a tu correo. Vence en 15 minutos.</Text>
       <Input
         etiqueta="Correo"
         value={email}
@@ -57,36 +55,16 @@ export function IngresarScreen({ navigation, route }: Props) {
         autoCorrect={false}
         error={error?.errorDe('email')}
       />
-      <Input
-        etiqueta="Contraseña"
-        value={contrasenia}
-        onChangeText={setContrasenia}
-        secureTextEntry
-        autoCapitalize="none"
-        error={error?.errorDe('contrasenia')}
-      />
-      <Button etiqueta="Continuar" onPress={continuar} deshabilitado={enviando} />
+      <Button etiqueta="Enviar código" onPress={enviarCodigo} deshabilitado={enviando} />
       {mensajeGeneral !== undefined && <Text style={estilos.mensaje}>{mensajeGeneral}</Text>}
       {falloDeRed && <Text style={estilos.mensaje}>{MENSAJE_DE_RED}</Text>}
-      <Text style={estilos.enlace} accessibilityRole="link" onPress={() => navigation.navigate('Recuperar')}>
-        ¿Olvidaste tu contraseña?
-      </Text>
-      <Text
-        style={estilos.enlace}
-        accessibilityRole="link"
-        onPress={() => navigation.navigate('Registro', { rol: 'CLIENTE' })}
-      >
-        ¿No tenés cuenta? Registrate
-      </Text>
     </ScrollView>
   );
 }
 
 const estilos = StyleSheet.create({
   contenedor: { flexGrow: 1, backgroundColor: colores.fondo, padding: espaciado.l },
-  aviso: { ...tipografia.cuerpo, color: colores.tinta, marginBottom: espaciado.m },
   titulo: { ...tipografia.titulo, color: colores.tinta, marginBottom: espaciado.s },
   texto: { ...tipografia.cuerpo, color: colores.tintaSecundaria, marginBottom: espaciado.l },
   mensaje: { ...tipografia.cuerpo, color: colores.tinta, marginTop: espaciado.m },
-  enlace: { ...tipografia.cuerpo, color: colores.tintaSecundaria, textAlign: 'center', paddingVertical: espaciado.m },
 });

@@ -1,10 +1,6 @@
-import { CerrarSesionDesarrollo, PantallaPendiente } from '../../components';
+import { MiCuentaScreen } from '../compartidas/MiCuentaScreen';
 
-/** Perfil del cliente, ver y editar. */
+/** Perfil del cliente, ver y editar (provisorio hasta D10). */
 export function PerfilClienteScreen() {
-  return (
-    <PantallaPendiente titulo="Mi perfil" respaldo="D10" endpoints={['A4', 'A6', 'A7']} sinDisenio>
-      <CerrarSesionDesarrollo />
-    </PantallaPendiente>
-  );
+  return <MiCuentaScreen />;
 }

@@ -4,8 +4,8 @@ import {
   limpiarTokens,
   obtenerAccessToken,
   obtenerRefreshToken,
-  type ParDeTokens,
 } from './tokens';
+import type { TokensDeSesion } from './identidad';
 
 /**
  * Cliente HTTP compartido. Las pantallas nunca llaman a fetch directo: usan las funciones de
@@ -14,10 +14,14 @@ import {
  * - Agrega Authorization: Bearer <access>.
  * - Ante un 401 intenta renovar el token una sola vez y reintenta; si falla, limpia la sesión
  *   y avisa para mandar a login (.ai/07-security.md).
+ * - Cada request tiene un tope de 10 s; al vencer falla como un error de red (no ApiError) y no toca los tokens.
  * - Cualquier respuesta no 2xx se lanza como ApiError con el formato único de error.
  */
 
 export const URL_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080/api/v1';
+
+/** Tiempo máximo de cada request. Al vencer se cancela y se trata como un fallo de red (no es un ApiError). */
+const TIEMPO_MAXIMO_MS = 10_000;
 
 type Metodo = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 type ValorDeConsulta = string | number | boolean | undefined | null;
@@ -63,7 +67,7 @@ export async function pedir<T = unknown>(ruta: string, opciones: Opciones = {}):
   return (await respuesta.json()) as T;
 }
 
-function enviar(ruta: string, { metodo = 'GET', cuerpo, consulta, publico }: Opciones): Promise<Response> {
+async function enviar(ruta: string, { metodo = 'GET', cuerpo, consulta, publico }: Opciones): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   const esArchivo = typeof FormData !== 'undefined' && cuerpo instanceof FormData;
   if (cuerpo !== undefined && !esArchivo) {
@@ -73,11 +77,18 @@ function enviar(ruta: string, { metodo = 'GET', cuerpo, consulta, publico }: Opc
   if (token && !publico) {
     headers.Authorization = `Bearer ${token}`;
   }
-  return fetch(URL_BASE + ruta + armarConsulta(consulta), {
-    method: metodo,
-    headers,
-    body: cuerpo === undefined ? undefined : esArchivo ? (cuerpo as FormData) : JSON.stringify(cuerpo),
-  });
+  const cancelador = new AbortController();
+  const temporizador = setTimeout(() => cancelador.abort(), TIEMPO_MAXIMO_MS);
+  try {
+    return await fetch(URL_BASE + ruta + armarConsulta(consulta), {
+      method: metodo,
+      headers,
+      body: cuerpo === undefined ? undefined : esArchivo ? (cuerpo as FormData) : JSON.stringify(cuerpo),
+      signal: cancelador.signal,
+    });
+  } finally {
+    clearTimeout(temporizador);
+  }
 }
 
 /** Si varias requests reciben 401 a la vez, comparten una sola renovación. */
@@ -93,12 +104,15 @@ async function renovar(): Promise<boolean> {
   if (!refreshToken) {
     return false;
   }
-  // A3 · POST /auth/refresh. TODO(módulo A): confirmar la forma del cuerpo y de la respuesta.
+  // A3 · POST /auth/refresh. Rota el refresh token en cada uso: se guarda el par nuevo.
   const respuesta = await enviar('/auth/refresh', { metodo: 'POST', cuerpo: { refreshToken }, publico: true });
-  if (!respuesta.ok) {
-    return false;
+  if (respuesta.status === 401 || respuesta.status === 403) {
+    return false; // refresh vencido, revocado o cuenta suspendida: la sesión está muerta
   }
-  await guardarTokens((await respuesta.json()) as ParDeTokens);
+  if (!respuesta.ok) {
+    throw await ApiError.desde(respuesta); // error del servidor: no se borra la sesión
+  }
+  await guardarTokens((await respuesta.json()) as TokensDeSesion);
   return true;
 }
 

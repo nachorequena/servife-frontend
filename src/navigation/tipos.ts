@@ -1,3 +1,5 @@
+import type { RolRegistrable } from '../api/identidad';
+
 /**
  * Parámetros de cada ruta. Los IDs que viajan son siempre uuid (servife-ia/.ai/07-security.md).
  * Tabs por rol según D04 (servife-ia/.ai/09-ux-ui.md §Navegación).
@@ -5,8 +7,10 @@
 
 export type AccesoParams = {
   Bienvenida: undefined;
-  Ingresar: undefined;
-  Registro: undefined;
+  Ingresar: { aviso?: string } | undefined;
+  Registro: { rol?: RolRegistrable } | undefined;
+  Recuperar: undefined;
+  Restablecer: { email: string };
 };
 
 export type ClienteTabsParams = {

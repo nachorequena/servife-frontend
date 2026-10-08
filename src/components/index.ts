@@ -2,7 +2,7 @@
 export { Avatar } from './Avatar';
 export { Button } from './Button';
 export { Card } from './Card';
-export { CerrarSesionDesarrollo } from './CerrarSesionDesarrollo';
+export { CerrarSesion } from './CerrarSesion';
 export { Input } from './Input';
 export { Logo } from './Logo';
 export { PantallaPendiente } from './PantallaPendiente';
