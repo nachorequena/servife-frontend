@@ -1,14 +1,17 @@
-import { PantallaPendiente } from '../../components';
+import { ScrollView } from 'react-native';
+
 import { MiCuenta } from '../compartidas/MiCuenta';
+import { MiServicio } from './MiServicio';
 
 /**
- * Editar perfil del prestador: rubro, zona, disponibilidad, descripción y documentos. Sin tarifa (D02).
- * Los datos de la cuenta y "Cerrar sesión" salen de MiCuenta (provisoria hasta D10).
+ * Perfil del prestador: Mi servicio (B7, B8) y Mi cuenta (con "Cerrar sesión"). Sin tarifa (D02).
+ * Los documentos (E7) llegan en el Sprint 5.
  */
 export function PerfilPropioScreen() {
   return (
-    <PantallaPendiente titulo="Mi perfil" respaldo="D10 · D01, D09" endpoints={['B7', 'B8', 'E7']} sinDisenio>
+    <ScrollView keyboardShouldPersistTaps="handled">
+      <MiServicio />
       <MiCuenta />
-    </PantallaPendiente>
+    </ScrollView>
   );
 }
