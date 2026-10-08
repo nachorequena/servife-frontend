@@ -30,7 +30,3 @@ export const obtenerSolicitud = (uuid: string) => pedir(`/solicitudes/${uuid}`);
 /** C4 · PATCH /solicitudes/{uuid}/estado · CU09. Única puerta de cambio de estado. */
 export const cambiarEstadoDeSolicitud = (uuid: string, cuerpo: unknown) =>
   pedir(`/solicitudes/${uuid}/estado`, { metodo: 'PATCH', cuerpo });
-
-/** C5 · GET /prestadores/{uuid}/disponibilidad · CU05, CU06. */
-export const obtenerDisponibilidad = (uuidPrestador: string) =>
-  pedir(`/prestadores/${uuidPrestador}/disponibilidad`);

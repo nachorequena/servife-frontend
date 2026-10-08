@@ -1,5 +1,6 @@
+import type { EstadoValidacion, TipoServicio } from './catalogo';
 import { pedir } from './cliente';
-import type { ParametrosDePagina } from './paginacion';
+import type { Pagina, ParametrosDePagina } from './paginacion';
 
 /**
  * Módulo E — Gestión, validación y mensajería (Ignacio Requena).
@@ -40,12 +41,31 @@ export const cambiarEstadoDeUsuario = (uuid: string, cuerpo: unknown) =>
 export const eliminarUsuario = (uuid: string) =>
   pedir(`/admin/usuarios/${uuid}`, { metodo: 'DELETE' });
 
-/** E5 · GET /admin/validaciones · CU14 · Gestor. */
-export const listarValidacionesPendientes = () => pedir('/admin/validaciones');
+/** Fila de E5. */
+export interface PrestadorPendiente {
+  uuid: string;
+  nombreApellido: string;
+  email: string;
+  tipoServicio: TipoServicio;
+  creadoEn: string;
+}
 
-/** E6 · PATCH /admin/prestadores/{uuid}/validacion · CU14 · Gestor. */
-export const validarPrestador = (uuidPrestador: string, cuerpo: unknown) =>
-  pedir(`/admin/prestadores/${uuidPrestador}/validacion`, { metodo: 'PATCH', cuerpo });
+/** Cuerpo de E6. */
+export interface DecisionDeValidacion {
+  decision: 'APROBAR' | 'RECHAZAR';
+  motivo?: string;
+}
+
+/** E5 · GET /admin/validaciones · CU14 · Gestor. Paginado. */
+export const listarValidacionesPendientes = (pagina: ParametrosDePagina = {}) =>
+  pedir<Pagina<PrestadorPendiente>>('/admin/validaciones', { consulta: { ...pagina } });
+
+/** E6 · PATCH /admin/prestadores/{uuid}/validacion · CU14 · Gestor. 409 VALIDACION_YA_RESUELTA. */
+export const validarPrestador = (uuidPrestador: string, cuerpo: DecisionDeValidacion) =>
+  pedir<{ uuid: string; estadoValidacion: EstadoValidacion }>(
+    `/admin/prestadores/${uuidPrestador}/validacion`,
+    { metodo: 'PATCH', cuerpo },
+  );
 
 /** E8 · GET /admin/prestadores/{uuid}/documentos · CU14 · Gestor. Nunca por URL pública. */
 export const obtenerDocumentosDePrestador = (uuidPrestador: string) =>
@@ -61,6 +81,3 @@ export const obtenerMetricas = () => pedir('/admin/metricas');
 /** E10 · POST /dispositivos. Registra el expo_push_token al iniciar sesión. */
 export const registrarDispositivo = (cuerpo: unknown) =>
   pedir('/dispositivos', { metodo: 'POST', cuerpo });
-
-/** E11 · GET /notificaciones. */
-export const listarNotificaciones = () => pedir('/notificaciones');
