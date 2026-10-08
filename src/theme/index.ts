@@ -49,6 +49,8 @@ export const bordes = {
 /** Tamaños fijos de elementos. No están en la maqueta con número: se agregaron como punto de partida. */
 export const tamanios = {
   avatar: 48,
+  avatarGrande: 132,
+  icono: 22,
 } as const;
 
 /** Opacidad de un botón presionado o deshabilitado. */
