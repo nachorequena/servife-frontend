@@ -34,7 +34,8 @@ export function SolicitudesScreen() {
     return () => clearTimeout(temporizador);
   }, [aviso]);
 
-  const abrir = (uuid: string) => navigation.navigate('DetalleSolicitud', { uuidSolicitud: uuid });
+  const abrir = (uuid: string, accion?: 'ACEPTAR') =>
+    navigation.navigate('DetalleSolicitud', accion ? { uuidSolicitud: uuid, accion } : { uuidSolicitud: uuid });
 
   return (
     <View style={estilos.pantalla}>
@@ -74,7 +75,7 @@ export function SolicitudesScreen() {
           renderItem={({ item }) => (
             <TarjetaDeSolicitud
               solicitud={item}
-              onAbrir={() => abrir(item.uuid)}
+              onAbrir={(accion) => abrir(item.uuid, accion)}
               onRechazada={() => {
                 quitar(item.uuid);
                 setAviso('Solicitud rechazada.');
@@ -114,7 +115,7 @@ export function SolicitudesScreen() {
 
 interface PropsTarjeta {
   solicitud: SolicitudEnLista;
-  onAbrir: () => void;
+  onAbrir: (accion?: 'ACEPTAR') => void;
   onRechazada: () => void;
 }
 
@@ -143,7 +144,7 @@ function TarjetaDeSolicitud({ solicitud, onAbrir, onRechazada }: PropsTarjeta) {
   };
 
   return (
-    <Pressable accessibilityRole="button" onPress={onAbrir} style={estilos.tarjeta}>
+    <Pressable accessibilityRole="button" onPress={() => onAbrir()} style={estilos.tarjeta}>
       <View style={estilos.cabecera}>
         <Avatar nombre={solicitud.contraparte.nombreApellido} tamanio={tamanios.avatarChico} />
         <View style={estilos.datos}>
@@ -162,7 +163,7 @@ function TarjetaDeSolicitud({ solicitud, onAbrir, onRechazada }: PropsTarjeta) {
 
       {pendiente && !rechazando && (
         <View style={estilos.botones}>
-          <Button etiqueta="ACEPTAR" variante="secundario" onPress={onAbrir} />
+          <Button etiqueta="ACEPTAR" variante="secundario" onPress={() => onAbrir('ACEPTAR')} />
           <Button etiqueta="RECHAZAR" variante="secundario" onPress={() => setRechazando(true)} />
         </View>
       )}

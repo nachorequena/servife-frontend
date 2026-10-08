@@ -7,7 +7,7 @@ import {
   type AccionSobreSolicitud,
   type Solicitud,
 } from '../../../api/solicitudes';
-import { DetalleSolicitud } from '../DetalleSolicitud';
+import { DetalleSolicitud, DetalleSolicitudDeRuta } from '../DetalleSolicitud';
 
 jest.mock('../../../api/solicitudes', () => ({ obtenerSolicitud: jest.fn(), cambiarEstadoDeSolicitud: jest.fn() }));
 jest.mock('../../../components/ImagenProtegida', () => ({
@@ -15,7 +15,9 @@ jest.mock('../../../components/ImagenProtegida', () => ({
     require('react').createElement(require('react-native').Text, null, `img:${uuid}`),
 }));
 
+let mockParams: Record<string, string> = { uuidSolicitud: 's1' };
 jest.mock('@react-navigation/native', () => ({
+  useRoute: () => ({ params: mockParams }),
   useFocusEffect: (efecto: () => void | (() => void)) => require('react').useEffect(() => efecto(), [efecto]),
 }));
 
@@ -52,6 +54,7 @@ beforeEach(() => {
   mockObtener.mockReset();
   mockCambiar.mockReset();
   mockRol = 'CLIENTE';
+  mockParams = { uuidSolicitud: 's1' };
 });
 
 async function abrir(s: Solicitud) {
@@ -61,6 +64,31 @@ async function abrir(s: Solicitud) {
 }
 
 describe('DetalleSolicitud', () => {
+  it('con accionInicial ACEPTAR abre directo la confirmación con el campo de precio', async () => {
+    mockRol = 'PRESTADOR';
+    mockObtener.mockResolvedValue(con(['ACEPTAR', 'RECHAZAR']));
+    await render(<DetalleSolicitud uuidSolicitud="s1" accionInicial="ACEPTAR" />);
+    expect(await screen.findByLabelText('Precio acordado (opcional)')).toBeOnTheScreen();
+    expect(screen.getByText('Confirmar')).toBeOnTheScreen();
+  });
+
+  it('la acción inicial se ignora si el backend no la habilita', async () => {
+    mockRol = 'PRESTADOR';
+    mockObtener.mockResolvedValue(con(['CANCELAR']));
+    await render(<DetalleSolicitud uuidSolicitud="s1" accionInicial="ACEPTAR" />);
+    await screen.findByText('Plomero');
+    expect(screen.queryByLabelText('Precio acordado (opcional)')).toBeNull();
+    expect(screen.getByText('Cancelar solicitud')).toBeOnTheScreen();
+  });
+
+  it('la pantalla de ruta toma la acción del parámetro de navegación', async () => {
+    mockRol = 'PRESTADOR';
+    mockParams = { uuidSolicitud: 's1', accion: 'ACEPTAR' };
+    mockObtener.mockResolvedValue(con(['ACEPTAR', 'RECHAZAR']));
+    await render(<DetalleSolicitudDeRuta />);
+    expect(await screen.findByLabelText('Precio acordado (opcional)')).toBeOnTheScreen();
+  });
+
   it('muestra los datos, la contraparte según el rol y las imágenes', async () => {
     await abrir(base());
     expect(screen.getByText('Pantalla provisoria: sin diseño en la maqueta (D10).')).toBeOnTheScreen();

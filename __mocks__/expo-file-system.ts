@@ -2,11 +2,14 @@
 export const memoria = {
   archivos: new Map<string, Uint8Array>(),
   carpetas: new Set<string>(),
+  /** Tamaño que informa File.size cuando no coincide con los bytes guardados (p. ej. fotos grandes sin cargarlas). */
+  tamanios: new Map<string, number>(),
   /** Simula el servidor: recibe (url, uri destino, opciones); si lanza, la descarga falla. */
   descarga: jest.fn<Promise<void>, [string, string, unknown]>(),
   reiniciar() {
     this.archivos.clear();
     this.carpetas.clear();
+    this.tamanios.clear();
     this.descarga.mockReset();
     this.descarga.mockResolvedValue(undefined);
   },
@@ -42,6 +45,9 @@ export class File {
   }
   get exists() {
     return memoria.archivos.has(this.uri);
+  }
+  get size() {
+    return memoria.tamanios.get(this.uri) ?? memoria.archivos.get(this.uri)?.length ?? 0;
   }
   get name() {
     return this.uri.split('/').pop() ?? '';

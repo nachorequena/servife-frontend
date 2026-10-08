@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -22,7 +23,7 @@ import { Button, Input, Logo } from '../../components';
 import type { ClienteStackParams } from '../../navigation/tipos';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, radios, tamanios, tipografia } from '../../theme';
-import { mensajeDe } from '../../utils/errores';
+import { MENSAJE_DE_RED, mensajeDe } from '../../utils/errores';
 import { diaDeSemana, hoyEnArgentina, nombresDeDias } from '../../utils/formato';
 
 const MAXIMO_DE_IMAGENES = 5;
@@ -35,6 +36,10 @@ interface Adjunto {
   nombre?: string;
   estado: 'subiendo' | 'lista' | 'error';
   uuid?: string;
+  /** Por qué falló la subida (estado 'error'). */
+  mensaje?: string;
+  /** Solo tiene sentido reintentar si falló la red o el servidor, no un 400/413. */
+  reintentable?: boolean;
 }
 
 interface Errores {
@@ -98,12 +103,17 @@ export function FormularioSolicitudScreen() {
 
   const subir = useCallback(
     async (adjunto: Pick<Adjunto, 'clave' | 'uri' | 'mime' | 'nombre'>) => {
-      cambiarAdjunto(adjunto.clave, { estado: 'subiendo' });
+      cambiarAdjunto(adjunto.clave, { estado: 'subiendo', mensaje: undefined, reintentable: undefined });
       try {
         const archivo = await subirImagen(adjunto.uri, adjunto.mime, adjunto.nombre);
         cambiarAdjunto(adjunto.clave, { estado: 'lista', uuid: archivo.uuid });
-      } catch {
-        cambiarAdjunto(adjunto.clave, { estado: 'error' });
+      } catch (e) {
+        cambiarAdjunto(
+          adjunto.clave,
+          e instanceof ApiError
+            ? { estado: 'error', mensaje: e.errorDe('archivo') ?? e.message, reintentable: e.status >= 500 }
+            : { estado: 'error', mensaje: MENSAJE_DE_RED, reintentable: true },
+        );
       }
     },
     [cambiarAdjunto],
@@ -127,7 +137,8 @@ export function FormularioSolicitudScreen() {
     }
     const asset = resultado.canceled ? undefined : resultado.assets[0];
     if (!asset) return;
-    if (asset.fileSize !== undefined && asset.fileSize > MAXIMO_DE_BYTES) {
+    // asset.fileSize es el de la foto original en Android; se sube la copia con quality 0.6, así que se mide esa.
+    if (new File(asset.uri).size > MAXIMO_DE_BYTES) {
       setErrores((e) => ({ ...e, imagenes: 'La imagen pesa más de 5 MB. Elegí otra.' }));
       return;
     }
@@ -142,6 +153,12 @@ export function FormularioSolicitudScreen() {
     setAdjuntos((actuales) => [...actuales, nuevo]);
     void subir(nuevo);
   }
+
+  /** Edita un campo y limpia su error. */
+  const editar = (campo: keyof Errores, poner: (valor: string) => void) => (valor: string) => {
+    poner(valor);
+    setErrores((e) => (e[campo] === undefined ? e : { ...e, [campo]: undefined }));
+  };
 
   const quitar = (k: number) => {
     setAdjuntos((actuales) => actuales.filter((a) => a.clave !== k));
@@ -222,8 +239,8 @@ export function FormularioSolicitudScreen() {
         <Input
           etiqueta="Fecha deseada (AAAA-MM-DD)"
           value={fecha}
-          onChangeText={setFecha}
-          placeholder="2026-09-18"
+          onChangeText={editar('fecha', setFecha)}
+          placeholder={hoyEnArgentina()}
           keyboardType="numbers-and-punctuation"
           autoCorrect={false}
           error={errores.fecha}
@@ -238,20 +255,20 @@ export function FormularioSolicitudScreen() {
         <Input
           etiqueta="Hora preferida"
           value={hora}
-          onChangeText={setHora}
+          onChangeText={editar('hora', setHora)}
           placeholder="Ej.: a la mañana"
           error={errores.hora}
         />
         <Input
           etiqueta="Dirección"
           value={direccion}
-          onChangeText={setDireccion}
+          onChangeText={editar('direccion', setDireccion)}
           error={errores.direccion}
         />
         <Input
           etiqueta="Descripción del trabajo"
           value={descripcion}
-          onChangeText={setDescripcion}
+          onChangeText={editar('descripcion', setDescripcion)}
           multiline
           textAlignVertical="top"
           numberOfLines={4}
@@ -275,10 +292,10 @@ export function FormularioSolicitudScreen() {
                   accessibilityIgnoresInvertColors
                 />
                 <Text style={estilos.estadoImagen}>
-                  {a.estado === 'subiendo' ? 'Subiendo…' : a.estado === 'lista' ? 'Lista' : 'No se subió'}
+                  {a.estado === 'subiendo' ? 'Subiendo…' : a.estado === 'lista' ? 'Lista' : (a.mensaje ?? 'No se subió')}
                 </Text>
                 <View style={estilos.accionesImagen}>
-                  {a.estado === 'error' && (
+                  {a.estado === 'error' && a.reintentable && (
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Reintentar imagen ${i + 1}`}
@@ -336,7 +353,7 @@ const estilos = StyleSheet.create({
   miniaturas: { flexDirection: 'row', flexWrap: 'wrap', gap: espaciado.s, marginBottom: espaciado.m },
   miniatura: { width: tamanios.miniatura, alignItems: 'center' },
   imagen: { width: tamanios.miniatura, height: tamanios.miniatura, borderRadius: radios.input },
-  estadoImagen: { ...tipografia.globo, color: colores.tintaSecundaria, marginTop: espaciado.xs },
+  estadoImagen: { ...tipografia.globo, color: colores.tintaSecundaria, marginTop: espaciado.xs, textAlign: 'center' },
   accionesImagen: { flexDirection: 'row', gap: espaciado.s },
   enlace: { ...tipografia.cuerpo, color: colores.verdeOscuro, fontWeight: '700' },
   error: { ...tipografia.cuerpo, color: colores.tinta, marginBottom: espaciado.m },

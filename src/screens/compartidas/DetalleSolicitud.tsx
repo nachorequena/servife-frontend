@@ -40,7 +40,14 @@ const PREGUNTA_DE_CONFIRMACION: Partial<Record<AccionSobreSolicitud, string>> = 
 };
 
 /** Detalle de una solicitud para cliente o prestador, con las acciones que el backend habilita (D10, provisorio). */
-export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
+export function DetalleSolicitud({
+  uuidSolicitud,
+  accionInicial,
+}: {
+  uuidSolicitud: string;
+  /** Acción a dejar abierta al cargar (p. ej. ACEPTAR desde la tarjeta): solo si el backend la habilita. */
+  accionInicial?: AccionSobreSolicitud;
+}) {
   const { sesion } = useSesion();
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [errorDeCarga, setErrorDeCarga] = useState<string | undefined>();
@@ -55,6 +62,7 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
   const pedido = useRef(0);
   const enVuelo = useRef(false);
   const primerFoco = useRef(true);
+  const accionInicialAplicada = useRef(false);
   const montado = useRef(true);
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -97,6 +105,13 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
       void cargar();
     }, [cargar]),
   );
+
+  // Solo la primera carga: si después el usuario toca Volver, no se vuelve a abrir.
+  useEffect(() => {
+    if (solicitud === null || accionInicial === undefined || accionInicialAplicada.current) return;
+    accionInicialAplicada.current = true;
+    if (solicitud.accionesDisponibles.includes(accionInicial)) abrir(accionInicial);
+  }, [solicitud, accionInicial]);
 
   const abrir = (a: AccionSobreSolicitud) => {
     setAccion(a);
@@ -284,6 +299,6 @@ const estilos = StyleSheet.create({
 
 /** Pantalla de ruta: lee `uuidSolicitud` de los parámetros. La usan las pilas de cliente y prestador. */
 export function DetalleSolicitudDeRuta() {
-  const { uuidSolicitud } = useRoute().params as { uuidSolicitud: string };
-  return <DetalleSolicitud uuidSolicitud={uuidSolicitud} />;
+  const { uuidSolicitud, accion } = useRoute().params as { uuidSolicitud: string; accion?: AccionSobreSolicitud };
+  return <DetalleSolicitud uuidSolicitud={uuidSolicitud} accionInicial={accion} />;
 }

@@ -87,14 +87,14 @@ describe('SolicitudesScreen', () => {
     expect(await screen.findByText('No hay solicitudes en este estado.')).toBeOnTheScreen();
   });
 
-  it('tocar la tarjeta y ACEPTAR abren el detalle', async () => {
+  it('tocar la tarjeta abre el detalle y ACEPTAR lo abre con el precio', async () => {
     mockListar.mockResolvedValue(pagina([item(1)]));
     await render(<SolicitudesScreen />);
     await fireEvent.press(await screen.findByText('Juan Perez 1'));
     expect(mockNavigate).toHaveBeenLastCalledWith('DetalleSolicitud', { uuidSolicitud: 's1' });
     mockNavigate.mockReset();
     await fireEvent.press(screen.getByText('ACEPTAR'));
-    expect(mockNavigate).toHaveBeenCalledWith('DetalleSolicitud', { uuidSolicitud: 's1' });
+    expect(mockNavigate).toHaveBeenCalledWith('DetalleSolicitud', { uuidSolicitud: 's1', accion: 'ACEPTAR' });
   });
 
   it('RECHAZAR pide confirmación, envía el motivo, quita la tarjeta y avisa', async () => {

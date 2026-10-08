@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+import { memoria } from '../../../../__mocks__/expo-file-system';
 import { subirImagen } from '../../../api/archivos';
 import { obtenerDisponibilidad } from '../../../api/disponibilidad';
+import { MENSAJE_DE_RED } from '../../../utils/errores';
 import { ApiError } from '../../../api/errores';
 import { crearSolicitud } from '../../../api/solicitudes';
 import { FormularioSolicitudScreen } from '../FormularioSolicitudScreen';
@@ -51,6 +53,7 @@ function imagen(extra: object = {}) {
 }
 
 beforeEach(() => {
+  memoria.reiniciar();
   [mockCrear, mockSubir, mockDisp, mockElegir, mockNavigate, mockGoBack].forEach((m) => m.mockReset());
   mockDisp.mockResolvedValue({ dias: [5, 1, 3] });
 });
@@ -152,26 +155,87 @@ describe('FormularioSolicitudScreen', () => {
     expect(await screen.findByText('Falló el servidor.')).toBeOnTheScreen();
   });
 
-  it('rechaza imágenes de más de 5 MB sin subirlas', async () => {
-    mockElegir.mockResolvedValue(imagen({ fileSize: 6 * 1024 * 1024 }));
+  it('mide el archivo que se sube (copia comprimida), no el tamaño original del selector', async () => {
+    memoria.tamanios.set('file:///a.jpg', 2 * 1024 * 1024);
+    mockElegir.mockResolvedValue(imagen({ fileSize: 8 * 1024 * 1024 }));
+    mockSubir.mockResolvedValue({ uuid: 'img-1', mime: 'image/png', bytes: 1 });
+    await abrir();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    await waitFor(() => expect(mockSubir).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('La imagen pesa más de 5 MB. Elegí otra.')).toBeNull();
+  });
+
+  it('rechaza sin subir si el archivo a subir pesa más de 5 MB', async () => {
+    memoria.tamanios.set('file:///a.jpg', 6 * 1024 * 1024);
+    mockElegir.mockResolvedValue(imagen({ fileSize: 1000 }));
     await abrir();
     await fireEvent.press(screen.getByText('Adjuntar imágenes'));
     expect(await screen.findByText('La imagen pesa más de 5 MB. Elegí otra.')).toBeOnTheScreen();
     expect(mockSubir).not.toHaveBeenCalled();
   });
 
-  it('si la subida falla permite reintentar y quitar', async () => {
+  it('si la subida falla por red permite reintentar y quitar', async () => {
     mockElegir.mockResolvedValue(imagen({ mimeType: undefined }));
-    mockSubir.mockRejectedValueOnce(new ApiError(413, 'ARCHIVO_DEMASIADO_GRANDE', 'Pesa demasiado.'));
+    mockSubir.mockRejectedValueOnce(new TypeError('Network request failed'));
     await abrir();
     await fireEvent.press(screen.getByText('Adjuntar imágenes'));
     expect(await screen.findByText('Reintentar')).toBeOnTheScreen();
+    expect(screen.getByText(MENSAJE_DE_RED)).toBeOnTheScreen();
     expect(mockSubir).toHaveBeenCalledWith('file:///a.jpg', 'image/jpeg', 'a.png');
     mockSubir.mockResolvedValueOnce({ uuid: 'img-2', mime: 'image/jpeg', bytes: 1 });
     await fireEvent.press(screen.getByText('Reintentar'));
     await waitFor(() => expect(screen.queryByText('Reintentar')).toBeNull());
     await fireEvent.press(screen.getByText('Quitar'));
     expect(screen.queryByText('Quitar')).toBeNull();
+  });
+
+  it('ante un 413 muestra el motivo bajo la miniatura y no ofrece Reintentar', async () => {
+    mockElegir.mockResolvedValue(imagen());
+    mockSubir.mockRejectedValueOnce(new ApiError(413, 'ARCHIVO_DEMASIADO_GRANDE', 'El archivo pesa más de 5 MB.'));
+    await abrir();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    expect(await screen.findByText('El archivo pesa más de 5 MB.')).toBeOnTheScreen();
+    expect(screen.queryByText('Reintentar')).toBeNull();
+    expect(screen.getByText('Quitar')).toBeOnTheScreen();
+  });
+
+  it('usa el error del campo archivo si el backend lo informa', async () => {
+    mockElegir.mockResolvedValue(imagen());
+    mockSubir.mockRejectedValueOnce(
+      new ApiError(400, 'VALIDACION', 'Datos inválidos', [{ campo: 'archivo', detalle: 'Formato no admitido.' }]),
+    );
+    await abrir();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    expect(await screen.findByText('Formato no admitido.')).toBeOnTheScreen();
+    expect(screen.queryByText('Reintentar')).toBeNull();
+  });
+
+  it('ante un 5xx ofrece Reintentar', async () => {
+    mockElegir.mockResolvedValue(imagen());
+    mockSubir.mockRejectedValueOnce(new ApiError(503, 'ERROR', 'Servicio no disponible.'));
+    await abrir();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    expect(await screen.findByText('Servicio no disponible.')).toBeOnTheScreen();
+    expect(screen.getByText('Reintentar')).toBeOnTheScreen();
+  });
+
+  it('el error de un campo desaparece al editarlo', async () => {
+    await abrir();
+    await completar('2026/10/09');
+    await fireEvent.changeText(screen.getByLabelText('Dirección'), '');
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    expect(screen.getByText('Usá el formato AAAA-MM-DD')).toBeOnTheScreen();
+    expect(screen.getAllByText('Es obligatoria.')).toHaveLength(1);
+    await fireEvent.changeText(screen.getByLabelText('Fecha deseada (AAAA-MM-DD)'), '2026-10-09');
+    expect(screen.queryByText('Usá el formato AAAA-MM-DD')).toBeNull();
+    expect(screen.getAllByText('Es obligatoria.')).toHaveLength(1);
+    await fireEvent.changeText(screen.getByLabelText('Dirección'), 'Calle 2');
+    expect(screen.queryByText('Es obligatoria.')).toBeNull();
+  });
+
+  it('el placeholder de la fecha es la fecha de hoy en Argentina', async () => {
+    await abrir();
+    expect(screen.getByLabelText('Fecha deseada (AAAA-MM-DD)').props.placeholder).toBe('2026-10-08');
   });
 
   it('bloquea el envío mientras sube y limita a 5 imágenes', async () => {

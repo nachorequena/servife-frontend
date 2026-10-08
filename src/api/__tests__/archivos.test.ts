@@ -62,6 +62,26 @@ describe('api/archivos · subir', () => {
     expect(anexado[0][1]).toMatchObject({ name: 'imagen.png', type: 'image/png' });
   });
 
+  it('la subida tiene un tope de 60 s (no los 10 s por defecto): una foto de 2-5 MB con mala señal tarda más', async () => {
+    jest.useFakeTimers();
+    try {
+      fetchMock.mockImplementation(
+        (_url: string, init: RequestInit) =>
+          new Promise<Response>((_ok, rechazar) => {
+            init.signal?.addEventListener('abort', () => rechazar(new Error('Aborted')));
+          }),
+      );
+      const resultado = subirImagen('file:///tmp/foto.jpg', 'image/jpeg').catch((e: unknown) => e);
+      await jest.advanceTimersByTimeAsync(59_999);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+      expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+      expect(await resultado).toBeInstanceOf(Error);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('si el access token vence renueva y reintenta (pasa por pedir)', async () => {
     fetchMock
       .mockResolvedValueOnce(respuesta(401))
@@ -102,6 +122,16 @@ describe('api/archivos · descargarImagen', () => {
     const [a, b] = await Promise.all([descargarImagen('a-1'), descargarImagen('a-1')]);
     expect(a).toBe(b);
     expect(memoria.descarga).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['Android (FileSystemDownload.kt)', 'Unable to download a file: response has status: 401'],
+    ['iOS (FileSystemDownload.swift)', 'response has status 401'],
+  ])('detecta el 401 con el mensaje nativo de %s y renueva', async (_plataforma, mensaje) => {
+    memoria.descarga.mockRejectedValueOnce(new Error(mensaje));
+    fetchMock.mockResolvedValueOnce(respuesta(200, { accessToken: 'access-2', refreshToken: 'refresh-2' }));
+    expect(await descargarImagen('a-1')).toBe(destino);
+    expect(memoria.descarga).toHaveBeenCalledTimes(2);
   });
 
   it('ante un 401 renueva la sesión una vez y reintenta con el token nuevo', async () => {

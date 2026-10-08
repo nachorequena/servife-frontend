@@ -11,6 +11,9 @@ export interface ArchivoSubido {
   bytes: number;
 }
 
+/** Una foto de 2-5 MB con mala señal no entra en los 10 s por defecto del cliente. */
+const TIEMPO_MAXIMO_DE_SUBIDA_MS = 60_000;
+
 const EXTENSIONES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
 /**
@@ -31,7 +34,7 @@ export function subirImagen(uri: string, mime: string, nombre?: string): Promise
   };
   const formulario = new FormData();
   formulario.append('archivo', parte as unknown as Blob);
-  return pedir<ArchivoSubido>('/archivos', { metodo: 'POST', cuerpo: formulario });
+  return pedir<ArchivoSubido>('/archivos', { metodo: 'POST', cuerpo: formulario, tiempoMaximoMs: TIEMPO_MAXIMO_DE_SUBIDA_MS });
 }
 
 /** GET /archivos/{uuid}: devuelve los bytes; requiere Authorization (ver descargarImagen). */
@@ -93,5 +96,9 @@ async function bajar(uuid: string, destino: File): Promise<void> {
   });
 }
 
-/** expo-file-system rechaza las respuestas no 2xx con un error cuyo mensaje incluye el código HTTP. */
+/**
+ * expo-file-system rechaza las respuestas no 2xx con un error cuyo mensaje incluye el código HTTP; no hay código
+ * estructurado. Mensajes reales: Android (FileSystemDownload.kt) "Unable to download a file: response has status: 401"
+ * e iOS (FileSystemDownload.swift) "response has status 401".
+ */
 const esNoAutorizado = (error: unknown): boolean => error instanceof Error && /\b401\b/.test(error.message);

@@ -1,6 +1,7 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { RolRegistrable } from '../api/identidad';
+import type { AccionSobreSolicitud } from '../api/solicitudes';
 
 /**
  * Parámetros de cada ruta. Los IDs que viajan son siempre uuid (servife-ia/.ai/07-security.md).
@@ -45,7 +46,8 @@ export type PrestadorStackParams = {
   Tabs: undefined;
   NuevoTrabajo: undefined;
   DetalleTrabajo: { uuidPublicacion: string };
-  DetalleSolicitud: { uuidSolicitud: string };
+  /** `accion`: deja abierta esa acción al cargar (ACEPTAR desde la tarjeta, con el campo de precio). */
+  DetalleSolicitud: { uuidSolicitud: string; accion?: AccionSobreSolicitud };
   Chat: { uuidChat: string };
   Avisos: undefined;
 };
