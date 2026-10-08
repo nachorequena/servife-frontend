@@ -9,8 +9,8 @@ import { ApiError } from '../../api/errores';
 import { Button, Input } from '../../components';
 import type { GestorStackParams } from '../../navigation/tipos';
 import { bordes, colores, espaciado, radios, tamanios, tipografia } from '../../theme';
-import { ICONOS_DE_SERVICIO } from '../../utils/iconosDeServicio';
 import { MENSAJE_DE_RED } from '../../utils/errores';
+import { ICONOS_DE_SERVICIO } from '../../utils/iconosDeServicio';
 
 const CAMPOS = ['nombre', 'icono', 'requiereMatricula'];
 

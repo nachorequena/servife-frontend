@@ -99,6 +99,18 @@ function renovarUnaVez(): Promise<boolean> {
   return renovacionEnCurso;
 }
 
+/**
+ * Para recursos que no pasan por pedir() (p. ej. <Image> con Authorization): renueva el access token una sola vez.
+ * Devuelve true si se obtuvo uno nuevo; ante red caída o error del servidor devuelve false sin tocar la sesión.
+ */
+export async function renovarSesionParaRecursos(): Promise<boolean> {
+  try {
+    return await renovarUnaVez();
+  } catch {
+    return false;
+  }
+}
+
 async function renovar(): Promise<boolean> {
   const refreshToken = await obtenerRefreshToken();
   if (!refreshToken) {

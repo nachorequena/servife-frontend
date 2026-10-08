@@ -56,12 +56,24 @@ export function formatearFechaSola(fecha: string): string {
 
 /** Hoy en Argentina como "AAAA-MM-DD" (a las 22:30 ART sigue siendo el día argentino aunque en UTC ya sea mañana). */
 export function hoyEnArgentina(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: ZONA_ARGENTINA,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+  const ahora = new Date();
+  try {
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: ZONA_ARGENTINA,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(ahora);
+    const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value;
+    const [anio, mes, dia] = [valor('year'), valor('month'), valor('day')];
+    if (anio && mes && dia) {
+      return `${anio}-${mes}-${dia}`;
+    }
+  } catch {
+    // Intl sin soporte de zonas horarias: se cae al cálculo manual.
+  }
+  // Argentina es UTC-3 todo el año (sin horario de verano).
+  return new Date(ahora.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 /** "2026-09-18" → 5. 1 = lunes … 7 = domingo; se calcula con Date.UTC para no depender de la zona del dispositivo. */

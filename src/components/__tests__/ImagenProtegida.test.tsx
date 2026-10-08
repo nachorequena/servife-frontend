@@ -3,11 +3,18 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { ImagenProtegida } from '../ImagenProtegida';
 
 const mockToken = jest.fn();
+const mockRenovar = jest.fn();
 jest.mock('../../api/tokens', () => ({ obtenerAccessToken: () => mockToken() }));
-jest.mock('../../api/cliente', () => ({ URL_BASE: 'http://api.test/api/v1' }));
+jest.mock('../../api/cliente', () => ({
+  URL_BASE: 'http://api.test/api/v1',
+  renovarSesionParaRecursos: () => mockRenovar(),
+}));
 
 describe('ImagenProtegida', () => {
-  beforeEach(() => mockToken.mockReset());
+  beforeEach(() => {
+    mockToken.mockReset();
+    mockRenovar.mockReset();
+  });
 
   it('sin token muestra un marcador y no pide la imagen', async () => {
     mockToken.mockReturnValue(null);
@@ -19,18 +26,50 @@ describe('ImagenProtegida', () => {
   it('con token pide /archivos/{uuid} con el header Authorization', async () => {
     mockToken.mockReturnValue('tok-1');
     await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
-    const imagen = screen.getByLabelText('Foto');
-    expect(imagen.props.source).toEqual({
+    expect(screen.getByLabelText('Foto').props.source).toEqual({
       uri: 'http://api.test/api/v1/archivos/a-1',
       headers: { Authorization: 'Bearer tok-1' },
     });
   });
 
-  it('si la imagen falla muestra un ícono', async () => {
-    mockToken.mockReturnValue('tok-1');
+  it('ante el primer error renueva el token y reintenta con el nuevo', async () => {
+    mockToken.mockReturnValue('viejo');
+    mockRenovar.mockImplementation(() => {
+      mockToken.mockReturnValue('nuevo');
+      return Promise.resolve(true);
+    });
     await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
     await fireEvent(screen.getByLabelText('Foto'), 'error');
-    expect(screen.getByTestId('imagen-protegida-error')).toBeTruthy();
-    expect(screen.queryByTestId('imagen-protegida-espera')).toBeNull();
+    const imagen = await screen.findByLabelText('Foto');
+    expect(mockRenovar).toHaveBeenCalledTimes(1);
+    expect(imagen.props.source.headers).toEqual({ Authorization: 'Bearer nuevo' });
+  });
+
+  it('si el reintento también falla muestra el ícono, sin renovar de nuevo', async () => {
+    mockToken.mockReturnValue('viejo');
+    mockRenovar.mockResolvedValue(true);
+    await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
+    await fireEvent(screen.getByLabelText('Foto'), 'error');
+    await fireEvent(await screen.findByLabelText('Foto'), 'error');
+    expect(await screen.findByTestId('imagen-protegida-error')).toBeTruthy();
+    expect(mockRenovar).toHaveBeenCalledTimes(1);
+  });
+
+  it('si no se pudo renovar muestra el ícono', async () => {
+    mockToken.mockReturnValue('viejo');
+    mockRenovar.mockResolvedValue(false);
+    await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
+    await fireEvent(screen.getByLabelText('Foto'), 'error');
+    expect(await screen.findByTestId('imagen-protegida-error')).toBeTruthy();
+  });
+
+  it('al cambiar el uuid se vuelve a intentar', async () => {
+    mockToken.mockReturnValue('tok');
+    mockRenovar.mockResolvedValue(false);
+    const { rerender } = await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
+    await fireEvent(screen.getByLabelText('Foto'), 'error');
+    await screen.findByTestId('imagen-protegida-error');
+    await rerender(<ImagenProtegida uuid="a-2" accessibilityLabel="Foto" />);
+    expect((await screen.findByLabelText('Foto')).props.source.uri).toMatch(/\/archivos\/a-2$/);
   });
 });

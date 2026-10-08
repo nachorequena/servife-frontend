@@ -62,3 +62,18 @@ describe('fecha sola (AAAA-MM-DD)', () => {
     expect(diaDeSemana('2026-09-20')).toBe(7); // domingo
   });
 });
+
+describe('hoyEnArgentina sin Intl con zonas', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  it('si Intl falla calcula el día con UTC-3', () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-09-19T01:30:00Z'));
+    jest.spyOn(Intl, 'DateTimeFormat').mockImplementation(() => {
+      throw new RangeError('timeZone no soportada');
+    });
+    expect(hoyEnArgentina()).toBe('2026-09-18');
+  });
+});
