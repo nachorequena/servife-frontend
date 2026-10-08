@@ -13,6 +13,7 @@ import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
 import { colores } from '../theme';
+import { iconoDeTab } from './iconos';
 import type { ClienteStackParams, ClienteTabsParams } from './tipos';
 
 const Tab = createBottomTabNavigator<ClienteTabsParams>();
@@ -22,10 +23,10 @@ const Stack = createNativeStackNavigator<ClienteStackParams>();
 function ClienteTabs() {
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde }}>
-      <Tab.Screen name="Inicio" component={InicioScreen} />
-      <Tab.Screen name="Mensajes" component={MensajesScreen} />
-      <Tab.Screen name="Historial" component={HistorialScreen} />
-      <Tab.Screen name="Perfil" component={PerfilClienteScreen} />
+      <Tab.Screen name="Inicio" component={InicioScreen} options={{ tabBarIcon: iconoDeTab('home') }} />
+      <Tab.Screen name="Mensajes" component={MensajesScreen} options={{ tabBarIcon: iconoDeTab('chatbubbles') }} />
+      <Tab.Screen name="Historial" component={HistorialScreen} options={{ tabBarIcon: iconoDeTab('time') }} />
+      <Tab.Screen name="Perfil" component={PerfilClienteScreen} options={{ tabBarIcon: iconoDeTab('person') }} />
     </Tab.Navigator>
   );
 }
