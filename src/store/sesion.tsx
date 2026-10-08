@@ -16,8 +16,8 @@ interface ValorDeSesion {
   sesion: Sesion | null;
   /** true hasta resolver el refresh token guardado (restauración al abrir la app). */
   restaurando: boolean;
-  /** A2 → guardar tokens → A4 → sesión. Relanza el error para que la pantalla lo muestre. */
-  ingresar: (email: string, contrasenia: string) => Promise<void>;
+  /** A2 → guardar tokens → A4 → sesión. Devuelve el rol real de la cuenta. Relanza el error para que la pantalla lo muestre. */
+  ingresar: (email: string, contrasenia: string) => Promise<Rol>;
   /** Tras A6 (editar perfil). */
   actualizarUsuario: (usuario: Usuario) => void;
   cerrar: () => Promise<void>;
@@ -65,12 +65,13 @@ export function ProveedorDeSesion({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const ingresar = useCallback(async (email: string, contrasenia: string) => {
+  const ingresar = useCallback(async (email: string, contrasenia: string): Promise<Rol> => {
     const { accessToken, refreshToken } = await iniciarSesion({ email, contrasenia });
     await guardarTokens({ accessToken, refreshToken });
     try {
       const usuario = await obtenerSesion();
       setSesion({ rol: usuario.rol, usuario });
+      return usuario.rol;
     } catch (error) {
       await limpiarTokens().catch(() => {});
       throw error;
