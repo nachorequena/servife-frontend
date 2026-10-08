@@ -7,6 +7,7 @@ import { RootNavigator } from '../RootNavigator';
 
 jest.mock('../../api/identidad');
 jest.mock('expo-secure-store', () => ({
+  canUseBiometricAuthentication: jest.fn(() => false),
   getItemAsync: jest.fn(() => Promise.resolve(null)),
   setItemAsync: jest.fn(() => Promise.resolve()),
   deleteItemAsync: jest.fn(() => Promise.resolve()),
