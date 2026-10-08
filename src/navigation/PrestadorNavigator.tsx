@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Campanita } from '../components/Campanita';
 import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { ChatScreen } from '../screens/compartidas/ChatScreen';
+import { DetalleSolicitudDeRuta } from '../screens/compartidas/DetalleSolicitud';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
 import { DetalleTrabajoScreen } from '../screens/prestador/DetalleTrabajoScreen';
@@ -37,6 +38,7 @@ export function PrestadorNavigator() {
       <Stack.Screen name="Tabs" component={PrestadorTabs} options={{ headerShown: false }} />
       <Stack.Screen name="NuevoTrabajo" component={NuevoTrabajoScreen} options={{ title: 'Nuevo trabajo' }} />
       <Stack.Screen name="DetalleTrabajo" component={DetalleTrabajoScreen} options={{ title: 'Trabajo' }} />
+      <Stack.Screen name="DetalleSolicitud" component={DetalleSolicitudDeRuta} options={{ title: 'Solicitud' }} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
     </Stack.Navigator>

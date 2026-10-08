@@ -177,7 +177,7 @@ export function FormularioSolicitudScreen() {
         descripcion: descripcion.trim(),
         ...(adjuntos.length > 0 && { imagenIds: adjuntos.flatMap((a) => (a.estado === 'lista' && a.uuid ? [a.uuid] : [])) }),
       });
-      navigation.navigate('Tabs', { screen: 'Historial', params: { aviso: 'Solicitud enviada.' } });
+      navigation.popTo('Tabs', { screen: 'Historial', params: { aviso: 'Solicitud enviada.' } });
     } catch (e) {
       if (e instanceof ApiError) {
         const deCampo = {

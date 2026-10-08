@@ -45,6 +45,7 @@ export type PrestadorStackParams = {
   Tabs: undefined;
   NuevoTrabajo: undefined;
   DetalleTrabajo: { uuidPublicacion: string };
+  DetalleSolicitud: { uuidSolicitud: string };
   Chat: { uuidChat: string };
   Avisos: undefined;
 };
