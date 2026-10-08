@@ -39,6 +39,7 @@ interface Adjunto {
 
 interface Errores {
   fecha?: string;
+  hora?: string;
   direccion?: string;
   descripcion?: string;
   imagenes?: string;
@@ -78,6 +79,7 @@ export function FormularioSolicitudScreen() {
   const [errores, setErrores] = useState<Errores>({});
   const [enviando, setEnviando] = useState(false);
   const clave = useRef(0);
+  const enCurso = useRef(false);
 
   useEffect(() => {
     let vigente = true;
@@ -112,11 +114,17 @@ export function FormularioSolicitudScreen() {
       setErrores((e) => ({ ...e, imagenes: `Podés adjuntar hasta ${MAXIMO_DE_IMAGENES} imágenes.` }));
       return;
     }
-    const resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.6,
-      allowsMultipleSelection: false,
-    });
+    let resultado: ImagePicker.ImagePickerResult;
+    try {
+      resultado = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.6,
+        allowsMultipleSelection: false,
+      });
+    } catch {
+      setErrores((e) => ({ ...e, imagenes: 'No pudimos abrir tus fotos.' }));
+      return;
+    }
     const asset = resultado.canceled ? undefined : resultado.assets[0];
     if (!asset) return;
     if (asset.fileSize !== undefined && asset.fileSize > MAXIMO_DE_BYTES) {
@@ -146,6 +154,7 @@ export function FormularioSolicitudScreen() {
   const puedeEnviar = disponibilidad.tipo === 'listo' && !sinDias && !subiendo && !enviando;
 
   async function enviar() {
+    if (enCurso.current || adjuntos.some((a) => a.estado === 'subiendo')) return;
     const locales: Errores = {
       fecha: validarFecha(fecha.trim(), dias),
       direccion: direccion.trim() === '' ? 'Es obligatoria.' : undefined,
@@ -157,6 +166,7 @@ export function FormularioSolicitudScreen() {
     setErrores(locales);
     if (Object.values(locales).some((m) => m !== undefined)) return;
 
+    enCurso.current = true;
     setEnviando(true);
     try {
       await crearSolicitud({
@@ -165,22 +175,29 @@ export function FormularioSolicitudScreen() {
         ...(hora.trim() !== '' && { horaPreferida: hora.trim() }),
         direccion: direccion.trim(),
         descripcion: descripcion.trim(),
-        ...(adjuntos.length > 0 && { imagenIds: adjuntos.map((a) => a.uuid as string) }),
+        ...(adjuntos.length > 0 && { imagenIds: adjuntos.flatMap((a) => (a.estado === 'lista' && a.uuid ? [a.uuid] : [])) }),
       });
       navigation.navigate('Tabs', { screen: 'Historial', params: { aviso: 'Solicitud enviada.' } });
     } catch (e) {
       if (e instanceof ApiError) {
         const deCampo = {
           fecha: e.errorDe('fechaDeseada'),
+          hora: e.errorDe('horaPreferida'),
           direccion: e.errorDe('direccion'),
           descripcion: e.errorDe('descripcion'),
           imagenes: e.errorDe('imagenIds'),
         };
+        const mapeados = ['fechaDeseada', 'horaPreferida', 'direccion', 'descripcion', 'imagenIds'];
+        const sinMapear = e.errores.some((x) => !mapeados.includes(x.campo));
         const sinCampo = Object.values(deCampo).every((m) => m === undefined);
-        setErrores({ ...deCampo, general: sinCampo ? (e.errorDe('uuidPrestador') ?? e.message) : undefined });
+        setErrores({
+          ...deCampo,
+          general: sinCampo || sinMapear ? (e.errorDe('uuidPrestador') ?? e.message) : undefined,
+        });
       } else {
         setErrores({ general: mensajeDe(e) });
       }
+      enCurso.current = false;
       setEnviando(false);
     }
   }
@@ -218,7 +235,13 @@ export function FormularioSolicitudScreen() {
           </View>
         )}
 
-        <Input etiqueta="Hora preferida" value={hora} onChangeText={setHora} placeholder="Ej.: a la mañana" />
+        <Input
+          etiqueta="Hora preferida"
+          value={hora}
+          onChangeText={setHora}
+          placeholder="Ej.: a la mañana"
+          error={errores.hora}
+        />
         <Input
           etiqueta="Dirección"
           value={direccion}
@@ -235,7 +258,7 @@ export function FormularioSolicitudScreen() {
           error={errores.descripcion}
         />
 
-        <Pressable accessibilityRole="button" style={estilos.subida} onPress={elegirImagen}>
+        <Pressable accessibilityRole="button" disabled={enviando} style={estilos.subida} onPress={elegirImagen}>
           <Text style={estilos.subidaTexto}>Adjuntar imágenes</Text>
           <Ionicons name="add-circle-outline" size={tamanios.icono} color={colores.tintaSecundaria} />
         </Pressable>
@@ -243,19 +266,34 @@ export function FormularioSolicitudScreen() {
 
         {adjuntos.length > 0 && (
           <View style={estilos.miniaturas}>
-            {adjuntos.map((a) => (
+            {adjuntos.map((a, i) => (
               <View key={a.clave} style={estilos.miniatura}>
-                <Image source={{ uri: a.uri }} style={estilos.imagen} accessibilityIgnoresInvertColors />
+                <Image
+                  source={{ uri: a.uri }}
+                  style={estilos.imagen}
+                  accessibilityLabel={`Imagen ${i + 1}`}
+                  accessibilityIgnoresInvertColors
+                />
                 <Text style={estilos.estadoImagen}>
                   {a.estado === 'subiendo' ? 'Subiendo…' : a.estado === 'lista' ? 'Lista' : 'No se subió'}
                 </Text>
                 <View style={estilos.accionesImagen}>
                   {a.estado === 'error' && (
-                    <Pressable accessibilityRole="button" onPress={() => subir(a)}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Reintentar imagen ${i + 1}`}
+                      disabled={enviando}
+                      onPress={() => subir(a)}
+                    >
                       <Text style={estilos.enlace}>Reintentar</Text>
                     </Pressable>
                   )}
-                  <Pressable accessibilityRole="button" onPress={() => quitar(a.clave)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Quitar imagen ${i + 1}`}
+                    disabled={enviando}
+                    onPress={() => quitar(a.clave)}
+                  >
                     <Text style={estilos.enlace}>Quitar</Text>
                   </Pressable>
                 </View>

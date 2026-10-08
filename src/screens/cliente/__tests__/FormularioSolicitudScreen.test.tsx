@@ -193,6 +193,61 @@ describe('FormularioSolicitudScreen', () => {
     expect(mockElegir).toHaveBeenCalledTimes(5);
   });
 
+  it('doble toque en Enviar crea una sola solicitud', async () => {
+    mockCrear.mockResolvedValue({});
+    await abrir();
+    await completar();
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    expect(mockCrear).toHaveBeenCalledTimes(1);
+  });
+
+  it('manda solo imágenes listas y tras enviar no deja adjuntar', async () => {
+    mockElegir.mockResolvedValue(imagen());
+    mockSubir.mockResolvedValue({ uuid: 'img-1', mime: 'image/png', bytes: 1 });
+    mockCrear.mockResolvedValue({});
+    await abrir();
+    await completar();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    await screen.findByText('Lista');
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    expect(mockCrear.mock.calls[0][0].imagenIds).toEqual(['img-1']);
+    await fireEvent.press(screen.getByLabelText('Quitar imagen 1'));
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    expect(mockElegir).toHaveBeenCalledTimes(1);
+  });
+
+  it('no envía mientras una imagen sube', async () => {
+    mockElegir.mockResolvedValue(imagen());
+    mockSubir.mockReturnValue(new Promise(() => undefined));
+    await abrir();
+    await completar();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  it('si el selector falla avisa', async () => {
+    mockElegir.mockRejectedValue(new Error('permiso denegado'));
+    await abrir();
+    await fireEvent.press(screen.getByText('Adjuntar imágenes'));
+    expect(await screen.findByText('No pudimos abrir tus fotos.')).toBeOnTheScreen();
+  });
+
+  it('el error de horaPreferida sale bajo Hora y uno sin mapear deja el mensaje general', async () => {
+    mockCrear.mockRejectedValue(
+      new ApiError(400, 'VALIDACION', 'Datos inválidos', [
+        { campo: 'horaPreferida', detalle: 'es muy larga' },
+        { campo: 'otro', detalle: 'algo' },
+      ]),
+    );
+    await abrir();
+    await completar();
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    expect(await screen.findByText('es muy larga')).toBeOnTheScreen();
+    expect(screen.getByText('Datos inválidos')).toBeOnTheScreen();
+  });
+
   it('cancelar vuelve atrás', async () => {
     await abrir();
     await fireEvent.press(screen.getByText('Cancelar'));

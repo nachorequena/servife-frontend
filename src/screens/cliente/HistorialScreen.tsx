@@ -1,13 +1,12 @@
-import { useRoute, type RouteProp } from '@react-navigation/native';
 import { StyleSheet, Text } from 'react-native';
 
 import { PantallaPendiente } from '../../components';
-import type { ClienteTabsParams } from '../../navigation/tipos';
+import { useAvisoDeRuta } from '../../hooks/useAvisoDeRuta';
 import { colores, espaciado, tipografia } from '../../theme';
 
 /** Solicitudes del cliente; desde acá se completa una valoración pospuesta (D07). */
 export function HistorialScreen() {
-  const aviso = useRoute<RouteProp<ClienteTabsParams, 'Historial'>>().params?.aviso;
+  const aviso = useAvisoDeRuta();
   return (
     <>
       {aviso !== undefined && <Text style={estilos.aviso}>{aviso}</Text>}
