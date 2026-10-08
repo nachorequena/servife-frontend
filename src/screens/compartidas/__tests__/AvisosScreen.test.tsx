@@ -41,6 +41,14 @@ describe('AvisosScreen', () => {
     expect(screen.getAllByTestId('punto-no-leido')).toHaveLength(1);
   });
 
+  it('un aviso sin cuerpo muestra solo el título y la fecha', async () => {
+    mockListar.mockResolvedValue(pagina([aviso(1, { cuerpo: null })]));
+    await render(<AvisosScreen />);
+    expect(await screen.findByText('Título 1')).toBeOnTheScreen();
+    expect(screen.queryByText('null')).toBeNull();
+    expect(screen.getByText('07/10/2026, 12:30')).toBeOnTheScreen();
+  });
+
   it('tocar un aviso no leído lo marca como leído', async () => {
     mockListar.mockResolvedValue(pagina([aviso(1)]));
     mockMarcar.mockResolvedValue(undefined);

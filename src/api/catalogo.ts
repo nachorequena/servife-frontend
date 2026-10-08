@@ -8,12 +8,11 @@ import type { Pagina, ParametrosDePagina } from './paginacion';
 
 /** Filtros de B5. Sin rango de precio (D02). */
 export interface FiltrosDePrestadores extends ParametrosDePagina {
-  /** Búsqueda libre por nombre, rubro o zona. */
+  /** Búsqueda libre por nombre o rubro. */
   q?: string;
   tipoServicioId?: string;
   lat?: number;
   lng?: number;
-  radioKm?: number;
   puntajeMin?: number;
   /** 1 = lunes … 7 = domingo; viaja como `dias=1&dias=3`. */
   dias?: number[];

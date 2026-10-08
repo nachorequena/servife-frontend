@@ -49,6 +49,12 @@ describe('PerfilPrestadorScreen', () => {
     expect(screen.queryByText(/Tarifa/)).toBeNull();
   });
 
+  it('usa el singular con un solo servicio realizado', async () => {
+    mockObtener.mockResolvedValue({ ...detalle, serviciosRealizados: 1 });
+    await render(<PerfilPrestadorScreen />);
+    expect(await screen.findByText('1 servicio realizado')).toBeOnTheScreen();
+  });
+
   it('sin datos opcionales muestra los textos de reemplazo y omite las filas vacías', async () => {
     mockObtener.mockResolvedValue({
       ...detalle,
@@ -62,6 +68,7 @@ describe('PerfilPrestadorScreen', () => {
     await render(<PerfilPrestadorScreen />);
     expect(await screen.findByText('Sin días cargados')).toBeOnTheScreen();
     expect(screen.getByText('Sin valoraciones todavía')).toBeOnTheScreen();
+    expect(screen.getByText('0 servicios realizados')).toBeOnTheScreen();
     expect(screen.queryByText(/Zona:/)).toBeNull();
     expect(screen.queryByText('Verificado')).toBeNull();
     expect(screen.queryByLabelText(/de 5 estrellas/)).toBeNull();

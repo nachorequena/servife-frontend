@@ -137,7 +137,7 @@ function FilaAviso({ aviso, onPress }: { aviso: Aviso; onPress: () => void }) {
       {!aviso.leida ? <View testID="punto-no-leido" style={estilos.punto} /> : <View style={estilos.puntoVacio} />}
       <View style={estilos.texto}>
         <Text style={estilos.titulo}>{aviso.titulo}</Text>
-        <Text style={estilos.cuerpo}>{aviso.cuerpo}</Text>
+        {aviso.cuerpo ? <Text style={estilos.cuerpo}>{aviso.cuerpo}</Text> : null}
         <Text style={estilos.fecha}>{formatearFechaHora(aviso.creadoEn)}</Text>
       </View>
     </Pressable>

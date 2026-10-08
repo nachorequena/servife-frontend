@@ -88,7 +88,7 @@ export function PerfilPrestadorScreen() {
             <Stars valor={p.valoracionPromedio} />
           )}
         </View>
-        <Fila icono="briefcase" texto={`${p.serviciosRealizados} servicios realizados`} />
+        <Fila icono="briefcase" texto={`${p.serviciosRealizados} ${p.serviciosRealizados === 1 ? 'servicio realizado' : 'servicios realizados'}`} />
         {p.verificado ? <Fila icono="shield-checkmark" texto="Verificado" color={colores.verde} /> : null}
         <View style={estilos.botones}>
           <Button

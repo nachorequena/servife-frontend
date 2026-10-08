@@ -146,6 +146,7 @@ export function InicioScreen() {
         <TextInput
           style={estilos.entrada}
           placeholder="Buscar"
+          accessibilityLabel="Buscar prestadores"
           placeholderTextColor={colores.tintaSecundaria}
           value={texto}
           onChangeText={setTexto}

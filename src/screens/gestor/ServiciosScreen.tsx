@@ -28,6 +28,7 @@ export function ServiciosScreen() {
 
   const cargar = useCallback(() => {
     let vigente = true;
+    setErrorGeneral(undefined);
     listarTiposServicio()
       .then((lista) => vigente && setTipos(lista))
       .catch((e) => {

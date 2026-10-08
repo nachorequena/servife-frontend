@@ -26,7 +26,7 @@ const Stack = createNativeStackNavigator<ClienteStackParams>();
 function ClienteTabs() {
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde, headerRight: () => <Campanita /> }}>
-      <Tab.Screen name="Inicio" component={InicioScreen} options={{ tabBarIcon: iconoDeTab('home') }} />
+      <Tab.Screen name="Inicio" component={InicioScreen} options={{ headerTitle: '', tabBarIcon: iconoDeTab('home') }} />
       <Tab.Screen name="Mensajes" component={MensajesScreen} options={{ tabBarIcon: iconoDeTab('chatbubbles') }} />
       <Tab.Screen name="Historial" component={HistorialScreen} options={{ tabBarIcon: iconoDeTab('time') }} />
       <Tab.Screen name="Perfil" component={PerfilClienteScreen} options={{ tabBarIcon: iconoDeTab('person') }} />
@@ -49,7 +49,7 @@ export function ClienteNavigator() {
           {({ route }) => <TrabajosRealizadosScreen soloLectura uuidPrestador={route.params.uuidPrestador} />}
         </Stack.Screen>
         <Stack.Screen name="Chat" component={ChatScreen} />
-      <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
+        <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
       </Stack.Navigator>
     </FiltrosProvider>
   );

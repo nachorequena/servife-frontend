@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { ApiError } from '../../../api/errores';
 import { listarValidacionesPendientes, validarPrestador, type PrestadorPendiente } from '../../../api/gestion';
@@ -6,6 +6,14 @@ import type { Pagina } from '../../../api/paginacion';
 import { ValidacionesScreen } from '../ValidacionesScreen';
 
 jest.mock('../../../api/gestion', () => ({ listarValidacionesPendientes: jest.fn(), validarPrestador: jest.fn() }));
+
+const mockFoco: { disparar: () => void } = { disparar: () => undefined };
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (efecto: () => void) => {
+    require('react').useEffect(efecto, [efecto]);
+    mockFoco.disparar = efecto;
+  },
+}));
 
 const mockListar = listarValidacionesPendientes as jest.Mock;
 const mockValidar = validarPrestador as jest.Mock;
@@ -30,6 +38,37 @@ beforeEach(() => {
 });
 
 describe('ValidacionesScreen', () => {
+  it('vuelve a pedir la lista al enfocar la pantalla', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await render(<ValidacionesScreen />);
+    expect(await screen.findByText('Prestador1 Apellido')).toBeOnTheScreen();
+    mockListar.mockResolvedValue(pagina([pendiente(2)]));
+    await act(async () => mockFoco.disparar());
+    expect(await screen.findByText('Prestador2 Apellido')).toBeOnTheScreen();
+    expect(screen.queryByText('Prestador1 Apellido')).toBeNull();
+  });
+
+  it('deslizar hacia abajo recarga la lista', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    mockListar.mockResolvedValue(pagina([]));
+    await act(async () => screen.getByTestId('lista-validaciones').props.refreshControl.props.onRefresh());
+    expect(await screen.findByText('No hay prestadores pendientes.')).toBeOnTheScreen();
+    expect(mockListar).toHaveBeenCalledTimes(2);
+  });
+
+  it('un error de red se limpia al recargar con éxito', async () => {
+    mockListar.mockRejectedValue(new Error('red'));
+    await render(<ValidacionesScreen />);
+    expect(await screen.findByText(/No pudimos conectarnos/)).toBeOnTheScreen();
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await act(async () => mockFoco.disparar());
+    expect(await screen.findByText('Prestador1 Apellido')).toBeOnTheScreen();
+    expect(screen.queryByText(/No pudimos conectarnos/)).toBeNull();
+  });
+
+
   it('muestra nombre, email, rubro y fecha de cada pendiente', async () => {
     mockListar.mockResolvedValue(pagina([pendiente(1)]));
     await render(<ValidacionesScreen />);

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { eliminarTipoServicio, listarTiposServicio, type TipoServicio } from '../../../api/catalogo';
 import { ApiError } from '../../../api/errores';
@@ -7,9 +7,13 @@ import { ServiciosScreen } from '../ServiciosScreen';
 jest.mock('../../../api/catalogo', () => ({ listarTiposServicio: jest.fn(), eliminarTipoServicio: jest.fn() }));
 
 const mockNavigate = jest.fn();
+const mockFoco: { disparar: () => void } = { disparar: () => undefined };
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
-  useFocusEffect: (efecto: () => void) => require('react').useEffect(efecto, [efecto]),
+  useFocusEffect: (efecto: () => void) => {
+    require('react').useEffect(efecto, [efecto]);
+    mockFoco.disparar = efecto;
+  },
 }));
 
 const mockListar = listarTiposServicio as jest.Mock;
@@ -25,6 +29,17 @@ beforeEach(() => {
 });
 
 describe('ServiciosScreen', () => {
+  it('limpia el error general al volver a cargar con éxito', async () => {
+    mockListar.mockReset().mockRejectedValue(new Error('red'));
+    await render(<ServiciosScreen />);
+    expect(await screen.findByText(/No pudimos conectarnos/)).toBeOnTheScreen();
+    mockListar.mockResolvedValue([plomero]);
+    await act(async () => mockFoco.disparar());
+    expect(await screen.findByText('Plomero')).toBeOnTheScreen();
+    expect(screen.queryByText(/No pudimos conectarnos/)).toBeNull();
+  });
+
+
   it('lista los tipos y marca los que requieren matrícula', async () => {
     await render(<ServiciosScreen />);
     expect(await screen.findByText('Plomero')).toBeOnTheScreen();

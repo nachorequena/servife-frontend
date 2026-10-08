@@ -9,7 +9,7 @@ export interface Aviso {
   uuid: string;
   tipo: string;
   titulo: string;
-  cuerpo: string;
+  cuerpo: string | null;
   /** null en el Sprint 2: todavía no hay solicitudes que originen avisos. */
   uuidSolicitud: string | null;
   leida: boolean;

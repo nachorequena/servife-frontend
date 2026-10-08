@@ -1,4 +1,4 @@
-import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import {
   actualizarMiPerfilDePrestador,
@@ -23,6 +23,14 @@ jest.mock('../../../api/disponibilidad', () => ({
 jest.mock('../../../hooks/useUbicacion', () => ({ obtenerUbicacionActual: jest.fn() }));
 jest.mock('../../../store/sesion', () => ({
   useSesion: () => ({ sesion: { rol: 'PRESTADOR', usuario: { uuid: 'p1' } } }),
+}));
+
+const mockFoco: { disparar: () => void } = { disparar: () => undefined };
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (efecto: () => void) => {
+    require('react').useEffect(efecto, [efecto]);
+    mockFoco.disparar = efecto;
+  },
 }));
 
 const mockTipos = listarTiposServicio as jest.Mock;
@@ -55,6 +63,30 @@ beforeEach(() => {
 });
 
 describe('MiServicio', () => {
+  it('recarga el perfil al enfocar para reflejar la decisión del gestor', async () => {
+    mockPerfil.mockResolvedValue({ ...perfil, estadoValidacion: 'PENDIENTE' });
+    await render(<MiServicio />);
+    expect(await screen.findByText('Tu perfil está en revisión. Todavía no aparecés en las búsquedas.')).toBeTruthy();
+    mockPerfil.mockResolvedValue({ ...perfil, estadoValidacion: 'APROBADO' });
+    await act(async () => mockFoco.disparar());
+    expect(await screen.findByText('Perfil aprobado. Aparecés en las búsquedas.')).toBeTruthy();
+    expect(mockC5).toHaveBeenCalledTimes(2);
+  });
+
+  it('explica el rechazo y cómo volver a revisión', async () => {
+    mockPerfil.mockResolvedValue({ ...perfil, estadoValidacion: 'RECHAZADO' });
+    await render(<MiServicio />);
+    expect(
+      await screen.findByText('Tu perfil fue rechazado. Si cambiás el servicio que ofrecés, vuelve a revisión.'),
+    ).toBeTruthy();
+  });
+
+  it('avisa que la ubicación se guarda aproximada', async () => {
+    await render(<MiServicio />);
+    expect(await screen.findByText('Guardamos un punto aproximado (~1 km) para cuidar tu privacidad.')).toBeTruthy();
+  });
+
+
   it('precarga el perfil y la disponibilidad', async () => {
     await render(<MiServicio />);
     expect(await screen.findByDisplayValue('Centro')).toBeTruthy();

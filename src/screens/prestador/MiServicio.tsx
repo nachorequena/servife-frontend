@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -24,7 +25,7 @@ const CAMPOS = ['idTipoServicio', 'zona', 'lat', 'lng', 'radioKm', 'descripcion'
 const TEXTO_DE_ESTADO: Record<EstadoValidacion, string> = {
   PENDIENTE: 'Tu perfil está en revisión. Todavía no aparecés en las búsquedas.',
   APROBADO: 'Perfil aprobado. Aparecés en las búsquedas.',
-  RECHAZADO: 'Tu perfil fue rechazado. Revisá tus datos o escribinos.',
+  RECHAZADO: 'Tu perfil fue rechazado. Si cambiás el servicio que ofrecés, vuelve a revisión.',
 };
 
 /** 1 = lunes … 7 = domingo. */
@@ -64,7 +65,8 @@ export function MiServicio() {
   const [api, setApi] = useState<ApiError | null>(null);
   const [red, setRed] = useState(false);
 
-  useEffect(() => {
+  // Se recarga al enfocar: así "en revisión" se actualiza cuando el gestor aprueba o rechaza.
+  const cargar = useCallback(() => {
     if (!uuid) return;
     let vigente = true;
     Promise.all([listarTiposServicio(), obtenerMiPerfilDeServicio(), obtenerDisponibilidad(uuid)])
@@ -80,6 +82,7 @@ export function MiServicio() {
         setDescripcion(perfil.descripcion ?? '');
         setDias(disponibilidad.dias);
         setCargado(true);
+        setFalloDeCarga(false);
       })
       .catch(() => {
         if (vigente) setFalloDeCarga(true);
@@ -88,6 +91,7 @@ export function MiServicio() {
       vigente = false;
     };
   }, [uuid]);
+  useFocusEffect(cargar);
 
   async function usarUbicacion() {
     setFalloDeUbicacion(false);
@@ -172,6 +176,7 @@ export function MiServicio() {
       </View>
 
       <Button etiqueta="Usar mi ubicación actual" variante="terciario" onPress={usarUbicacion} deshabilitado={buscandoUbicacion} />
+      <Text style={estilos.ayuda}>Guardamos un punto aproximado (~1 km) para cuidar tu privacidad.</Text>
       {ubicacion && <Text style={estilos.mensaje}>Ubicación guardada</Text>}
       {falloDeUbicacion && <Text style={estilos.mensaje}>No pudimos obtener tu ubicación.</Text>}
       {(error('lat') ?? error('lng')) !== undefined && <Text style={estilos.mensaje}>{error('lat') ?? error('lng')}</Text>}
@@ -227,4 +232,5 @@ const estilos = StyleSheet.create({
   fila: { flexDirection: 'row', flexWrap: 'wrap', gap: espaciado.s, marginBottom: espaciado.m },
   campo: { marginTop: espaciado.m },
   mensaje: { ...tipografia.cuerpo, color: colores.tinta, marginTop: espaciado.s },
+  ayuda: { ...tipografia.cuerpo, color: colores.tintaSecundaria, marginTop: espaciado.xs },
 });

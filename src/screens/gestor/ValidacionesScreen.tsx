@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../api/errores';
 import { listarValidacionesPendientes, validarPrestador, type PrestadorPendiente } from '../../api/gestion';
@@ -21,28 +22,31 @@ export function ValidacionesScreen() {
   const [rechazando, setRechazando] = useState<string | null>(null);
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [refrescando, setRefrescando] = useState(false);
 
   const recargar = useCallback(async () => {
     try {
       setPendientes((await listarValidacionesPendientes()).contenido);
     } catch (e) {
       setError(mensajeDe(e));
+      setPendientes((actual) => actual ?? []);
     }
   }, []);
 
-  useEffect(() => {
-    let vigente = true;
-    listarValidacionesPendientes()
-      .then((pagina) => vigente && setPendientes(pagina.contenido))
-      .catch((e) => {
-        if (!vigente) return;
-        setError(mensajeDe(e));
-        setPendientes([]);
-      });
-    return () => {
-      vigente = false;
-    };
-  }, []);
+  // Al enfocar la pantalla se vuelve a pedir la lista (el estado anterior puede haber quedado viejo).
+  useFocusEffect(
+    useCallback(() => {
+      setError(undefined);
+      void recargar();
+    }, [recargar]),
+  );
+
+  async function refrescar() {
+    setRefrescando(true);
+    setError(undefined);
+    await recargar();
+    setRefrescando(false);
+  }
 
   async function resolver(uuid: string, decision: 'APROBAR' | 'RECHAZAR') {
     setAviso(undefined);
@@ -67,7 +71,11 @@ export function ValidacionesScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={estilos.contenedor}>
+    <ScrollView
+      contentContainerStyle={estilos.contenedor}
+      testID="lista-validaciones"
+      refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} />}
+    >
       <Text style={estilos.titulo}>Validaciones</Text>
       {aviso !== undefined && <Text style={estilos.mensaje}>{aviso}</Text>}
       {error !== undefined && <Text style={estilos.mensaje}>{error}</Text>}

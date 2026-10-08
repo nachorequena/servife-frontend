@@ -61,6 +61,12 @@ describe('InicioScreen', () => {
     expect(screen.getAllByLabelText(/de 5 estrellas/)).toHaveLength(1);
   });
 
+  it('el campo de búsqueda tiene etiqueta accesible', async () => {
+    mockBuscar.mockResolvedValue(pagina([prestador(1)]));
+    await renderizar();
+    expect(await screen.findByLabelText('Buscar prestadores')).toBeOnTheScreen();
+  });
+
   it('sin permiso de ubicación igual lista, sin lat ni lng', async () => {
     mockUbicacion = { ubicacion: null, estado: 'denegada' };
     mockBuscar.mockResolvedValue(pagina([prestador(1)]));
