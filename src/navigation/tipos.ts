@@ -49,5 +49,11 @@ export type PrestadorStackParams = {
 export type GestorTabsParams = {
   Dashboard: undefined;
   Validaciones: undefined;
+  Servicios: undefined;
   Perfil: undefined;
+};
+
+export type GestorStackParams = {
+  Tabs: undefined;
+  FormularioTipoServicio: { uuid?: string };
 };

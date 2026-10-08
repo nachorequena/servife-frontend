@@ -51,6 +51,7 @@ export const tamanios = {
   avatar: 48,
   avatarGrande: 132,
   icono: 22,
+  celdaIcono: 48,
 } as const;
 
 /** Opacidad de un botón presionado o deshabilitado. */
