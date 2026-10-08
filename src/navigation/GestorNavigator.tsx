@@ -6,6 +6,8 @@ import { FormularioTipoServicio } from '../screens/gestor/FormularioTipoServicio
 import { PerfilGestorScreen } from '../screens/gestor/PerfilGestorScreen';
 import { ServiciosScreen } from '../screens/gestor/ServiciosScreen';
 import { ValidacionesScreen } from '../screens/gestor/ValidacionesScreen';
+import { Campanita } from '../components/Campanita';
+import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
 import type { GestorStackParams, GestorTabsParams } from './tipos';
@@ -20,7 +22,7 @@ const Stack = createNativeStackNavigator<GestorStackParams>();
  */
 function GestorTabs() {
   return (
-    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.lila }}>
+    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.lila, headerRight: () => <Campanita /> }}>
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarIcon: iconoDeTab('stats-chart') }} />
       <Tab.Screen name="Validaciones" component={ValidacionesScreen} options={{ tabBarIcon: iconoDeTab('shield-checkmark') }} />
       <Tab.Screen name="Servicios" component={ServiciosScreen} options={{ tabBarIcon: iconoDeTab('construct') }} />
@@ -35,6 +37,7 @@ export function GestorNavigator() {
     <Stack.Navigator>
       <Stack.Screen name="Tabs" component={GestorTabs} options={{ headerShown: false }} />
       <Stack.Screen name="FormularioTipoServicio" component={FormularioTipoServicio} options={{ title: 'Tipo de servicio' }} />
+      <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
     </Stack.Navigator>
   );
 }

@@ -14,6 +14,7 @@ export const colores = {
   lila: '#7B61FF', // navegación del gestor
   fondoLila: '#FBF2FF',
   estrella: '#F5C518',
+  verdeClaro: '#E6F8F2', // fondo de un aviso sin leer
 } as const;
 
 export const radios = {
@@ -52,6 +53,8 @@ export const tamanios = {
   avatarGrande: 132,
   icono: 22,
   celdaIcono: 48,
+  globo: 18, // globo de la campana
+  punto: 10, // punto de aviso sin leer
 } as const;
 
 /** Opacidad de un botón presionado o deshabilitado. */

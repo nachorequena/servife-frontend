@@ -13,6 +13,8 @@ import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
 import { FiltrosProvider } from '../store/filtros';
+import { Campanita } from '../components/Campanita';
+import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
 import type { ClienteStackParams, ClienteTabsParams } from './tipos';
@@ -23,7 +25,7 @@ const Stack = createNativeStackNavigator<ClienteStackParams>();
 /** Tabs del cliente (D04): Inicio, Mensajes, Historial, Perfil. */
 function ClienteTabs() {
   return (
-    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde }}>
+    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde, headerRight: () => <Campanita /> }}>
       <Tab.Screen name="Inicio" component={InicioScreen} options={{ tabBarIcon: iconoDeTab('home') }} />
       <Tab.Screen name="Mensajes" component={MensajesScreen} options={{ tabBarIcon: iconoDeTab('chatbubbles') }} />
       <Tab.Screen name="Historial" component={HistorialScreen} options={{ tabBarIcon: iconoDeTab('time') }} />
@@ -47,6 +49,7 @@ export function ClienteNavigator() {
           {({ route }) => <TrabajosRealizadosScreen soloLectura uuidPrestador={route.params.uuidPrestador} />}
         </Stack.Screen>
         <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
       </Stack.Navigator>
     </FiltrosProvider>
   );
