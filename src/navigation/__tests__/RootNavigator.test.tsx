@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { iniciarSesion, obtenerSesion, type Usuario } from '../../api/identidad';
 import { ProveedorDeSesion } from '../../store/sesion';
@@ -11,11 +12,16 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
+// Como en App.tsx, la app corre dentro de SafeAreaProvider (los stacks usan los insets).
+const metricas = { frame: { x: 0, y: 0, width: 400, height: 800 }, insets: { top: 0, left: 0, right: 0, bottom: 0 } };
+
 function renderApp() {
   return render(
-    <ProveedorDeSesion>
-      <RootNavigator />
-    </ProveedorDeSesion>,
+    <SafeAreaProvider initialMetrics={metricas}>
+      <ProveedorDeSesion>
+        <RootNavigator />
+      </ProveedorDeSesion>
+    </SafeAreaProvider>,
   );
 }
 

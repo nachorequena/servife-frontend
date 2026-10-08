@@ -73,7 +73,7 @@ export function IngresarScreen({ navigation, route }: Props) {
       <Text
         style={estilos.enlace}
         accessibilityRole="link"
-        onPress={() => navigation.navigate('Registro', { rol: 'CLIENTE' })}
+        onPress={() => navigation.navigate('Registro', { rol: route.params?.rol ?? 'CLIENTE' })}
       >
         ¿No tenés cuenta? Registrate
       </Text>

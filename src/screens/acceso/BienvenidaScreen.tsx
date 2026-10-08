@@ -23,7 +23,7 @@ export function BienvenidaScreen({ navigation }: Props) {
       <Text style={estilos.pregunta}>¿Cómo querés acceder hoy?</Text>
       <View style={estilos.botones}>
         <Button etiqueta="Cliente" onPress={() => navigation.navigate('Ingresar')} />
-        <Button etiqueta="Prestador" variante="terciario" onPress={() => navigation.navigate('Registro', { rol: 'PRESTADOR' })} />
+        <Button etiqueta="Prestador" variante="terciario" onPress={() => navigation.navigate('Ingresar', { rol: 'PRESTADOR' })} />
       </View>
       <Text style={estilos.enlace} accessibilityRole="link" onPress={() => navigation.navigate('Ingresar')}>
         Ingreso como administrador

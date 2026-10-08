@@ -13,6 +13,7 @@ import { PerfilPropioScreen } from '../screens/prestador/PerfilPropioScreen';
 import { SolicitudesScreen } from '../screens/prestador/SolicitudesScreen';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
+import { useOpcionesDePila } from './opcionesDePila';
 import type { PrestadorStackParams, PrestadorTabsParams } from './tipos';
 
 const Tab = createBottomTabNavigator<PrestadorTabsParams>();
@@ -33,8 +34,9 @@ function PrestadorTabs() {
 }
 
 export function PrestadorNavigator() {
+  const opcionesDePila = useOpcionesDePila();
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={opcionesDePila}>
       <Stack.Screen name="Tabs" component={PrestadorTabs} options={{ headerShown: false }} />
       <Stack.Screen name="NuevoTrabajo" component={NuevoTrabajoScreen} options={{ title: 'Nuevo trabajo' }} />
       <Stack.Screen name="DetalleTrabajo" component={DetalleTrabajoScreen} options={{ title: 'Trabajo' }} />
