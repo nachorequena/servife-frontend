@@ -124,4 +124,16 @@ describe('HistorialScreen', () => {
     expect(await screen.findByText('Prestador 2')).toBeOnTheScreen();
     expect(mockListar).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }));
   });
+
+  it('un refresco fallido conserva la lista y muestra error en línea', async () => {
+    mockListar.mockResolvedValueOnce(pagina([item(1)]));
+    await render(<HistorialScreen />);
+    await screen.findByText('Prestador 1');
+    mockListar.mockRejectedValueOnce(new ApiError(500, 'X', 'boom'));
+    await act(async () => {
+      screen.getByTestId('lista-solicitudes').props.onRefresh();
+    });
+    expect(await screen.findByText('No pudimos actualizar la lista.')).toBeOnTheScreen();
+    expect(screen.getByText('Prestador 1')).toBeOnTheScreen();
+  });
 });

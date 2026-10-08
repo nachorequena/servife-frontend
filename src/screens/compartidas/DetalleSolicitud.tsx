@@ -1,4 +1,4 @@
-import { useRoute } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -9,12 +9,11 @@ import {
   type CambioDeEstado,
   type Solicitud,
 } from '../../api/solicitudes';
-import { Button, EtiquetaDeEstado, Input } from '../../components';
-import { ImagenProtegida } from '../../components/ImagenProtegida';
+import { Button, EtiquetaDeEstado, ImagenProtegida, Input } from '../../components';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, radios, tamanios, tipografia } from '../../theme';
 import { mensajeDe } from '../../utils/errores';
-import { formatearCentavos, formatearFechaSola } from '../../utils/formato';
+import { formatearCentavos, formatearFechaSola, pesosACentavos } from '../../utils/formato';
 
 const AVISO_MS = 3000;
 const CODIGOS_QUE_RECARGAN = ['TRANSICION_INVALIDA', 'TODAVIA_NO_ES_LA_FECHA'];
@@ -40,14 +39,6 @@ const PREGUNTA_DE_CONFIRMACION: Partial<Record<AccionSobreSolicitud, string>> = 
   FINALIZAR: '¿Querés dar el trabajo por finalizado?',
 };
 
-/** "1500,5" → 150050 centavos. Solo dígitos con coma y hasta 2 decimales; null si no es válido. */
-function pesosACentavos(texto: string): number | null {
-  const m = /^(\d+)(?:,(\d{1,2}))?$/.exec(texto);
-  if (!m) return null;
-  const centavos = Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));
-  return Number.isSafeInteger(centavos) && centavos > 0 ? centavos : null;
-}
-
 /** Detalle de una solicitud para cliente o prestador, con las acciones que el backend habilita (D10, provisorio). */
 export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
   const { sesion } = useSesion();
@@ -62,6 +53,8 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
   const [errorDeAccion, setErrorDeAccion] = useState<string | undefined>();
   const [listo, setListo] = useState(false);
   const pedido = useRef(0);
+  const enVuelo = useRef(false);
+  const primerFoco = useRef(true);
   const montado = useRef(true);
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -94,6 +87,17 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
     void cargar();
   }, [cargar, reintento]);
 
+  // Al volver a la pantalla se recarga sin vaciarla.
+  useFocusEffect(
+    useCallback(() => {
+      if (primerFoco.current) {
+        primerFoco.current = false;
+        return;
+      }
+      void cargar();
+    }, [cargar]),
+  );
+
   const abrir = (a: AccionSobreSolicitud) => {
     setAccion(a);
     setMotivo('');
@@ -104,7 +108,8 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
   };
 
   const confirmar = async () => {
-    if (!accion || enviando) return;
+    if (!accion || enVuelo.current) return;
+    enVuelo.current = true;
     const cuerpo: CambioDeEstado = { accion };
     if (accion === 'CANCELAR' || accion === 'RECHAZAR') {
       if (motivo.trim() !== '') cuerpo.motivo = motivo.trim();
@@ -113,6 +118,7 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
       const centavos = pesosACentavos(precio.trim());
       if (centavos === null) {
         setErrorPrecio('Ingresá un monto válido');
+        enVuelo.current = false;
         return;
       }
       cuerpo.precioAcordado = centavos;
@@ -137,6 +143,7 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
         void cargar();
       }
     } finally {
+      enVuelo.current = false;
       if (montado.current) setEnviando(false);
     }
   };
@@ -208,6 +215,9 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
         </Seccion>
       )}
 
+      {errorDeCarga !== undefined && (
+        <Text style={estilos.textoError}>No pudimos actualizar la solicitud.</Text>
+      )}
       {errorDeAccion !== undefined && <Text style={estilos.textoError}>{errorDeAccion}</Text>}
 
       {accion === null ? (
@@ -232,6 +242,7 @@ export function DetalleSolicitud({ uuidSolicitud }: { uuidSolicitud: string }) {
           {accion === 'ACEPTAR' && (
             <Input
               etiqueta="Precio acordado (opcional)"
+              placeholder="Ej.: 8.000 o 8.000,50"
               value={precio}
               onChangeText={setPrecio}
               keyboardType="decimal-pad"

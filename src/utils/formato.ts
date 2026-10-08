@@ -82,3 +82,25 @@ export function diaDeSemana(fecha: string): number {
   const diaJs = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay(); // 0 = domingo
   return diaJs === 0 ? 7 : diaJs;
 }
+
+/**
+ * Pesos escritos a mano → centavos enteros, o null si el formato no es válido.
+ * Acepta "8000", "8.000" (miles), "1.234,56", "8000,5" y "1500.50" (punto decimal si no es un grupo de 3).
+ */
+export function pesosACentavos(texto: string): number | null {
+  const t = texto.trim();
+  let entera: string;
+  let decimales = '';
+  let m: RegExpExecArray | null;
+  if ((m = /^(\d{1,3}(?:\.\d{3})+)(?:,(\d{1,2}))?$/.exec(t))) {
+    entera = m[1].replace(/\./g, '');
+    decimales = m[2] ?? '';
+  } else if ((m = /^(\d+)(?:[,.](\d{1,2}))?$/.exec(t))) {
+    entera = m[1];
+    decimales = m[2] ?? '';
+  } else {
+    return null;
+  }
+  const centavos = Number(entera) * 100 + Number(decimales.padEnd(2, '0'));
+  return Number.isSafeInteger(centavos) ? centavos : null;
+}

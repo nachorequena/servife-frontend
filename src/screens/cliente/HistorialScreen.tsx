@@ -35,6 +35,7 @@ export function HistorialScreen() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState(false);
   const [errorMas, setErrorMas] = useState(false);
+  const [errorAlActualizar, setErrorAlActualizar] = useState(false);
   const [reintento, setReintento] = useState(0);
   const solicitud = useRef(0);
   const cargandoMasRef = useRef(false);
@@ -52,6 +53,7 @@ export function HistorialScreen() {
     setCargandoMas(false);
     setErrorMas(false);
     setError(false);
+    setErrorAlActualizar(false);
     setRefrescando(refresco);
     setCargando(!refresco);
     if (!refresco) setItems([]);
@@ -64,6 +66,10 @@ export function HistorialScreen() {
       })
       .catch(() => {
         if (id !== solicitud.current) return;
+        if (refresco) {
+          setErrorAlActualizar(true); // se conserva la lista
+          return;
+        }
         setItems([]);
         setError(true);
       })
@@ -160,6 +166,9 @@ export function HistorialScreen() {
           onEndReachedThreshold={0.5}
           refreshing={refrescando}
           onRefresh={refrescar}
+          ListHeaderComponent={
+            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar la lista.</Text> : null
+          }
           ListEmptyComponent={
             <EstadoVacio
               mensaje={estados === undefined ? 'Todavía no pediste ningún servicio.' : 'No hay solicitudes en este estado.'}

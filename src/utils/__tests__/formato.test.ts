@@ -6,6 +6,7 @@ import {
   formatearFechaSola,
   hoyEnArgentina,
   nombresDeDias,
+  pesosACentavos,
 } from '../formato';
 
 describe('formato', () => {
@@ -76,4 +77,28 @@ describe('hoyEnArgentina sin Intl con zonas', () => {
     });
     expect(hoyEnArgentina()).toBe('2026-09-18');
   });
+});
+
+describe('pesosACentavos', () => {
+  it.each([
+    ['8000', 800000],
+    ['8.000', 800000],
+    ['1.234.567', 123456700],
+    ['1.234,56', 123456],
+    ['8000,5', 800050],
+    ['1500.50', 150050],
+    ['1.5', 150],
+    ['0', 0],
+    ['0,00', 0],
+    [' 99,05 ', 9905],
+  ])('acepta "%s" -> %i', (texto, centavos) => {
+    expect(pesosACentavos(texto)).toBe(centavos);
+  });
+
+  it.each(['', '.5', '1500,', '1.23.4', '-5', '1,234', '1500.505', 'mucho', '1.2345', '99999999999999999999'])(
+    'rechaza "%s"',
+    (texto) => {
+      expect(pesosACentavos(texto)).toBeNull();
+    },
+  );
 });

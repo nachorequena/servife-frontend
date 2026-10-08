@@ -15,6 +15,10 @@ jest.mock('../../../components/ImagenProtegida', () => ({
     require('react').createElement(require('react-native').Text, null, `img:${uuid}`),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (efecto: () => void | (() => void)) => require('react').useEffect(() => efecto(), [efecto]),
+}));
+
 let mockRol = 'CLIENTE';
 jest.mock('../../../store/sesion', () => ({ useSesion: () => ({ sesion: { rol: mockRol } }) }));
 
@@ -139,6 +143,9 @@ describe('DetalleSolicitud', () => {
     ['1500,5', 150050],
     ['1500,50', 150050],
     ['99,05', 9905],
+    ['8.000', 800000],
+    ['1.234,56', 123456],
+    ['0', 0],
   ])('ACEPTAR convierte "%s" pesos a %i centavos', async (texto, centavos) => {
     mockRol = 'PRESTADOR';
     await abrir(con(['ACEPTAR', 'RECHAZAR']));
@@ -211,5 +218,27 @@ describe('DetalleSolicitud', () => {
     mockObtener.mockResolvedValue(base());
     await fireEvent.press(screen.getByText('Reintentar'));
     expect(await screen.findByText('Plomero')).toBeOnTheScreen();
+  });
+
+  it('un doble toque en Confirmar manda una sola vez', async () => {
+    await abrir(con(['CANCELAR']));
+    await fireEvent.press(screen.getByText('Cancelar solicitud'));
+    let resolver: (s: Solicitud) => void = () => undefined;
+    mockCambiar.mockReturnValue(new Promise<Solicitud>((r) => (resolver = r)));
+    await fireEvent.press(screen.getByText('Confirmar cancelación'));
+    await fireEvent.press(screen.getByText('Confirmar cancelación'));
+    expect(mockCambiar).toHaveBeenCalledTimes(1);
+    resolver(base({ estado: 'CANCELADA' }));
+    expect(await screen.findByText('Listo.')).toBeOnTheScreen();
+  });
+
+  it('una recarga fallida con datos en pantalla muestra un error en línea', async () => {
+    await abrir(con(['INICIAR']));
+    await fireEvent.press(screen.getByText('Iniciar trabajo'));
+    mockCambiar.mockRejectedValue(new ApiError(409, 'TRANSICION_INVALIDA', 'Cambió.'));
+    mockObtener.mockRejectedValue(new ApiError(500, 'X', 'boom'));
+    await fireEvent.press(screen.getByText('Confirmar'));
+    expect(await screen.findByText('No pudimos actualizar la solicitud.')).toBeOnTheScreen();
+    expect(screen.getByText('Plomero')).toBeOnTheScreen();
   });
 });
