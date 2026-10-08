@@ -22,10 +22,10 @@ export function BienvenidaScreen({ navigation }: Props) {
       </View>
       <Text style={estilos.pregunta}>¿Cómo querés acceder hoy?</Text>
       <View style={estilos.botones}>
-        <Button etiqueta="Cliente" onPress={() => navigation.navigate('Ingresar')} />
+        <Button etiqueta="Cliente" onPress={() => navigation.navigate('Ingresar', { rol: 'CLIENTE' })} />
         <Button etiqueta="Prestador" variante="terciario" onPress={() => navigation.navigate('Ingresar', { rol: 'PRESTADOR' })} />
       </View>
-      <Text style={estilos.enlace} accessibilityRole="link" onPress={() => navigation.navigate('Ingresar')}>
+      <Text style={estilos.enlace} accessibilityRole="link" onPress={() => navigation.navigate('Ingresar', { rol: 'GESTOR' })}>
         Ingreso como administrador
       </Text>
     </View>

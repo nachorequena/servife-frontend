@@ -15,15 +15,15 @@ const mockHuella = {
 };
 jest.mock('../../../api/huella', () => ({
   huellaDisponible: () => mockHuella.huellaDisponible(),
-  correoConHuella: () => mockHuella.correoConHuella(),
+  correoConHuella: (...args: unknown[]) => mockHuella.correoConHuella(...args),
   guardarConHuella: (...args: unknown[]) => mockHuella.guardarConHuella(...args),
-  leerConHuella: () => mockHuella.leerConHuella(),
-  olvidarHuella: () => mockHuella.olvidarHuella(),
+  leerConHuella: (...args: unknown[]) => mockHuella.leerConHuella(...args),
+  olvidarHuella: (...args: unknown[]) => mockHuella.olvidarHuella(...args),
 }));
 
 const navigation = { navigate: jest.fn() } as any;
 
-async function montar(params?: { aviso?: string; rol?: 'CLIENTE' | 'PRESTADOR' }) {
+async function montar(params?: { aviso?: string; rol?: 'CLIENTE' | 'PRESTADOR' | 'GESTOR' }) {
   await render(<IngresarScreen navigation={navigation} route={{ key: 'i', name: 'Ingresar', params } as any} />);
 }
 
@@ -56,7 +56,7 @@ describe('IngresarScreen', () => {
   });
 
   it('envía correo y contraseña a mockIngresar', async () => {
-    mockIngresar.mockResolvedValue(undefined);
+    mockIngresar.mockResolvedValue('CLIENTE');
     await montar();
     await completar('ana@mail.com', 'Clave123');
     expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'Clave123');
@@ -103,6 +103,11 @@ describe('IngresarScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'CLIENTE' });
   });
 
+  it('el ingreso de administrador no ofrece registrarse', async () => {
+    await montar({ rol: 'GESTOR' });
+    expect(screen.queryByRole('link', { name: '¿No tenés cuenta? Registrate' })).toBeNull();
+  });
+
   it('si viene de "Prestador", el registro abre con el rol de prestador', async () => {
     await montar({ rol: 'PRESTADOR' });
     await userEvent.setup().press(screen.getByRole('link', { name: '¿No tenés cuenta? Registrate' }));
@@ -126,7 +131,7 @@ describe('IngresarScreen', () => {
 
     it('con el switch apagado no guarda nada al ingresar', async () => {
       mockHuella.huellaDisponible.mockResolvedValue(true);
-      mockIngresar.mockResolvedValue(undefined);
+      mockIngresar.mockResolvedValue('CLIENTE');
       await montar();
       await screen.findByLabelText('Usar mi huella para ingresar');
       await completar('ana@mail.com', 'Clave123');
@@ -136,14 +141,39 @@ describe('IngresarScreen', () => {
 
     it('con el switch prendido guarda la huella después de un ingreso exitoso', async () => {
       mockHuella.huellaDisponible.mockResolvedValue(true);
-      mockIngresar.mockResolvedValue(undefined);
+      mockIngresar.mockResolvedValue('CLIENTE');
       await montar();
       await fireEvent(await screen.findByLabelText('Usar mi huella para ingresar'), 'valueChange', true);
       await completar('ana@mail.com', 'Clave123');
-      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('ana@mail.com', 'Clave123');
+      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('CLIENTE', 'ana@mail.com', 'Clave123');
       expect(mockIngresar.mock.invocationCallOrder[0]).toBeLessThan(
         mockHuella.guardarConHuella.mock.invocationCallOrder[0],
       );
+    });
+
+    it('guarda la huella bajo el rol real de la cuenta, no el del botón de entrada', async () => {
+      mockHuella.huellaDisponible.mockResolvedValue(true);
+      mockIngresar.mockResolvedValue('CLIENTE');
+      await montar({ rol: 'PRESTADOR' });
+      await fireEvent(await screen.findByLabelText('Usar mi huella para ingresar'), 'valueChange', true);
+      await completar('ana@mail.com', 'Clave123');
+      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('CLIENTE', 'ana@mail.com', 'Clave123');
+    });
+
+    it('solo ofrece la huella guardada para el rol de la pantalla', async () => {
+      mockHuella.huellaDisponible.mockResolvedValue(true);
+      mockHuella.correoConHuella.mockImplementation((rol: string) => Promise.resolve(rol === 'CLIENTE' ? 'ana@mail.com' : null));
+      await montar({ rol: 'PRESTADOR' });
+      expect(await screen.findByLabelText('Usar mi huella para ingresar')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Ingresar con huella' })).toBeNull();
+      expect(mockHuella.correoConHuella).toHaveBeenCalledWith('PRESTADOR');
+    });
+
+    it('sin rol en los parámetros usa el de cliente', async () => {
+      mockHuella.huellaDisponible.mockResolvedValue(true);
+      await montar();
+      await screen.findByLabelText('Usar mi huella para ingresar');
+      expect(mockHuella.correoConHuella).toHaveBeenCalledWith('CLIENTE');
     });
 
     it('con el switch prendido no guarda nada si las credenciales son inválidas', async () => {
@@ -176,7 +206,7 @@ describe('IngresarScreen', () => {
 
       it('ingresa con las credenciales guardadas', async () => {
         mockHuella.leerConHuella.mockResolvedValue({ estado: 'ok', correo: 'ana@mail.com', contrasenia: 'Clave123' });
-        mockIngresar.mockResolvedValue(undefined);
+        mockIngresar.mockResolvedValue('CLIENTE');
         await montar();
         await ingresarConHuella();
         expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'Clave123');
@@ -194,7 +224,7 @@ describe('IngresarScreen', () => {
             'Tu contraseña cambió. Ingresá con correo y contraseña para volver a activar la huella.',
           ),
         ).toBeTruthy();
-        expect(mockHuella.olvidarHuella).toHaveBeenCalled();
+        expect(mockHuella.olvidarHuella).toHaveBeenCalledWith('CLIENTE');
         expect(screen.queryByRole('button', { name: 'Ingresar con huella' })).toBeNull();
         expect(screen.getByLabelText('Usar mi huella para ingresar')).toBeTruthy();
       });
@@ -234,7 +264,7 @@ describe('IngresarScreen', () => {
       it('"No usar más la huella" la olvida y muestra el switch', async () => {
         await montar();
         await userEvent.setup().press(await screen.findByRole('link', { name: 'No usar más la huella' }));
-        expect(mockHuella.olvidarHuella).toHaveBeenCalled();
+        expect(mockHuella.olvidarHuella).toHaveBeenCalledWith('CLIENTE');
         expect(screen.queryByRole('button', { name: 'Ingresar con huella' })).toBeNull();
         expect(screen.getByLabelText('Usar mi huella para ingresar')).toBeTruthy();
       });

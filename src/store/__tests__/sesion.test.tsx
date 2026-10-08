@@ -89,7 +89,11 @@ describe('ingresar y cerrar', () => {
     (obtenerSesion as jest.Mock).mockResolvedValue(usuario);
     await montar();
     await screen.findByText('sin sesión');
-    await act(() => valor.ingresar('ana@mail.com', 'Clave123'));
+    let rolDevuelto: unknown;
+    await act(async () => {
+      rolDevuelto = await valor.ingresar('ana@mail.com', 'Clave123');
+    });
+    expect(rolDevuelto).toBe('PRESTADOR');
     expect(iniciarSesion).toHaveBeenCalledWith({ email: 'ana@mail.com', contrasenia: 'Clave123' });
     expect(guardarTokens).toHaveBeenCalledWith({ accessToken: 'a', refreshToken: 'r' });
     expect(valor.sesion).toEqual({ rol: 'PRESTADOR', usuario });

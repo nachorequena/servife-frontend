@@ -25,3 +25,17 @@ test('"Prestador" abre el inicio de sesión como prestador', async () => {
   await userEvent.setup().press(screen.getByRole('button', { name: 'Prestador' }));
   expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', { rol: 'PRESTADOR' });
 });
+
+test('"Cliente" y "Ingreso como administrador" abren el inicio de sesión con su rol', async () => {
+  const navigation = { navigate: jest.fn() } as any;
+  await render(
+    <SafeAreaProvider initialMetrics={metricas}>
+      <BienvenidaScreen navigation={navigation} route={{ key: 'b', name: 'Bienvenida' } as any} />
+    </SafeAreaProvider>,
+  );
+  const usuario = userEvent.setup();
+  await usuario.press(screen.getByRole('button', { name: 'Cliente' }));
+  expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', { rol: 'CLIENTE' });
+  await usuario.press(screen.getByRole('link', { name: 'Ingreso como administrador' }));
+  expect(navigation.navigate).toHaveBeenCalledWith('Ingresar', { rol: 'GESTOR' });
+});
