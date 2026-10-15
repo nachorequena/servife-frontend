@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { contarAvisosNoLeidos } from '../api/notificaciones';
 import { colores, espaciado, radios, tamanios, tipografia } from '../theme';
@@ -34,12 +34,26 @@ export function Campanita() {
       });
   }, []);
 
-  // Solo consulta la instancia de la pantalla enfocada: al perder el foco se corta el intervalo.
+  // Solo consulta la instancia de la pantalla enfocada y con la app en primer plano: al perder el foco o
+  // pasar a segundo plano se corta el intervalo; al volver, consulta en el momento y lo retoma.
   useFocusEffect(
     useCallback(() => {
-      consultar();
-      const intervalo = setInterval(consultar, REFRESCO_MS);
-      return () => clearInterval(intervalo);
+      let intervalo: ReturnType<typeof setInterval> | null = null;
+      const arrancar = () => {
+        if (intervalo !== null) return;
+        consultar();
+        intervalo = setInterval(consultar, REFRESCO_MS);
+      };
+      const parar = () => {
+        if (intervalo !== null) clearInterval(intervalo);
+        intervalo = null;
+      };
+      if (AppState.currentState !== 'background') arrancar();
+      const suscripcion = AppState.addEventListener('change', (estado) => (estado === 'active' ? arrancar() : parar()));
+      return () => {
+        parar();
+        suscripcion.remove();
+      };
     }, [consultar]),
   );
 

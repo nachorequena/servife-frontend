@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import { contarAvisosNoLeidos } from '../../api/notificaciones';
 import { Campanita } from '../Campanita';
@@ -84,6 +85,36 @@ describe('Campanita', () => {
     mockEnfocada = true;
     await rerender(<Campanita />);
     expect(mockContar.mock.calls.length).toBe(alPerderFoco + 1);
+  });
+
+  it('en segundo plano deja de consultar y al volver consulta en el momento', async () => {
+    jest.useFakeTimers();
+    let cambiarEstado: (estado: AppStateStatus) => void = () => {};
+    const remove = jest.fn();
+    // Solo para el montaje de este test: el preset ya simula AppState y un mockRestore le borraría la implementación.
+    jest.spyOn(AppState, 'addEventListener').mockImplementationOnce((_tipo, oyente) => {
+      cambiarEstado = oyente as (estado: AppStateStatus) => void;
+      return { remove };
+    });
+    mockContar.mockResolvedValue({ cantidad: 1 });
+    const { unmount } = await render(<Campanita />);
+
+    await act(async () => cambiarEstado('background'));
+    const alIrse = mockContar.mock.calls.length;
+    await act(async () => {
+      jest.advanceTimersByTime(90_000);
+    });
+    expect(mockContar.mock.calls.length).toBe(alIrse);
+
+    await act(async () => cambiarEstado('active'));
+    expect(mockContar.mock.calls.length).toBe(alIrse + 1);
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+    });
+    expect(mockContar.mock.calls.length).toBe(alIrse + 2);
+
+    await unmount();
+    expect(remove).toHaveBeenCalled();
   });
 
   it('una respuesta vieja no pisa a una más nueva', async () => {
