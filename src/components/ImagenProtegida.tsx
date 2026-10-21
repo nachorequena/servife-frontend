@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, View, type ImageStyle, type StyleProp } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View, type ImageStyle, type StyleProp } from 'react-native';
 
 import { descargarImagen } from '../api/archivos';
 import { colores, tamanios } from '../theme';
@@ -16,10 +16,12 @@ type Estado = { fase: 'cargando' } | { fase: 'lista'; uri: string } | { fase: 'f
 /**
  * Imagen de GET /archivos/{uuid}, que exige Authorization: Bearer. <Image> no manda headers en esta versión
  * de React Native, así que se descarga con descargarImagen (api/archivos.ts, con renovación del token ante
- * un 401) a la caché y se muestra el archivo local.
+ * un 401) a la caché y se muestra el archivo local. Mientras descarga muestra un indicador; si falla, tocarla
+ * reintenta.
  */
 export function ImagenProtegida({ uuid, estilo, accessibilityLabel }: Props) {
   const [estado, setEstado] = useState<Estado>({ fase: 'cargando' });
+  const [intento, setIntento] = useState(0);
 
   useEffect(() => {
     let vigente = true; // se descarta el resultado si cambió el uuid o se desmontó
@@ -31,17 +33,28 @@ export function ImagenProtegida({ uuid, estilo, accessibilityLabel }: Props) {
     return () => {
       vigente = false;
     };
-  }, [uuid]);
+  }, [uuid, intento]);
 
   if (estado.fase === 'fallo') {
     return (
-      <View style={[estilos.marco, estilo]} testID="imagen-protegida-error" accessibilityLabel={accessibilityLabel}>
-        <Ionicons name="image-outline" size={tamanios.icono} color={colores.tintaSecundaria} />
-      </View>
+      <Pressable
+        style={[estilos.marco, estilo]}
+        testID="imagen-protegida-error"
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint="No se pudo cargar. Tocá para reintentar."
+        onPress={() => setIntento((n) => n + 1)}
+      >
+        <Ionicons name="refresh-outline" size={tamanios.icono} color={colores.tintaSecundaria} />
+      </Pressable>
     );
   }
   if (estado.fase === 'cargando') {
-    return <View style={[estilos.marco, estilo]} testID="imagen-protegida-espera" />;
+    return (
+      <View style={[estilos.marco, estilo]} testID="imagen-protegida-espera">
+        <ActivityIndicator color={colores.verde} />
+      </View>
+    );
   }
   return (
     <Image

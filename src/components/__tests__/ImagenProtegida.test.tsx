@@ -29,6 +29,14 @@ describe('ImagenProtegida', () => {
     expect(await screen.findByTestId('imagen-protegida-error')).toBeTruthy();
   });
 
+  it('si falló, tocarla vuelve a descargar', async () => {
+    mockDescargar.mockRejectedValueOnce(new Error('sin red')).mockResolvedValueOnce('file:///cache/archivos/a-1');
+    await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);
+    await fireEvent.press(await screen.findByTestId('imagen-protegida-error'));
+    expect((await screen.findByLabelText('Foto')).props.source).toEqual({ uri: 'file:///cache/archivos/a-1' });
+    expect(mockDescargar).toHaveBeenCalledTimes(2);
+  });
+
   it('si la imagen local no se puede decodificar muestra el ícono', async () => {
     mockDescargar.mockResolvedValue('file:///cache/archivos/a-1');
     await render(<ImagenProtegida uuid="a-1" accessibilityLabel="Foto" />);

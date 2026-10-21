@@ -1,6 +1,7 @@
 // Componentes compartidos. Antes de crear uno nuevo, buscá acá (servife-ia/.ai/09-ux-ui.md).
 export { Avatar } from './Avatar';
 export { Button } from './Button';
+export { Campanita } from './Campanita';
 export { Card } from './Card';
 export { Chip } from './Chip';
 export { CerrarSesion } from './CerrarSesion';

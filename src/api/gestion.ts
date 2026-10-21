@@ -3,22 +3,11 @@ import { pedir } from './cliente';
 import type { Pagina, ParametrosDePagina } from './paginacion';
 
 /**
- * Módulo E — Gestión, validación y mensajería (Ignacio Requena).
+ * Módulo E — Gestión y validación (porción 5: Ignacio Requena).
  * Una función por endpoint de servife-ia/.ai/05-api-contract.md; los IDs son los del prototipo
- * (E12 a E15 son posteriores: salieron de D04 y D06).
- * Consulta previa (D03): endpoints sin definir, no se agregan hasta que el equipo los cierre.
+ * (E13 a E15 son posteriores: salieron de D06). La mensajería (E1, E2, E12) está en api/mensajeria.ts y los
+ * avisos y el dispositivo (E10, E11) en api/notificaciones.ts.
  */
-
-/** E12 · GET /conversaciones · D04. Bandeja Mensajes. */
-export const listarConversaciones = () => pedir('/conversaciones');
-
-/** E1 · GET /chats/{uuid}/mensajes?desde= · CU07. Polling cada 8 s (ver api/mensajeria.ts). */
-export const listarMensajes = (uuidChat: string, desde?: string) =>
-  pedir(`/chats/${uuidChat}/mensajes`, { consulta: { desde } });
-
-/** E2 · POST /chats/{uuid}/mensajes · CU07. */
-export const enviarMensaje = (uuidChat: string, cuerpo: unknown) =>
-  pedir(`/chats/${uuidChat}/mensajes`, { metodo: 'POST', cuerpo });
 
 /** E3 · GET /admin/usuarios · CU12 · Gestor. Filtros rol, estado, texto. */
 export const listarUsuarios = (
@@ -77,7 +66,3 @@ export const subirDocumento = (formulario: FormData) =>
 
 /** E9 · GET /admin/metricas · CU12 · Gestor. Servicios activos y validaciones pendientes. */
 export const obtenerMetricas = () => pedir('/admin/metricas');
-
-/** E10 · POST /dispositivos. Registra el expo_push_token al iniciar sesión. */
-export const registrarDispositivo = (cuerpo: unknown) =>
-  pedir('/dispositivos', { metodo: 'POST', cuerpo });

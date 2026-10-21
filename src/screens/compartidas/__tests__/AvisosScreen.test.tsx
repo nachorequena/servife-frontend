@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { listarAvisos, marcarAvisoLeido, type Aviso } from '../../../api/notificaciones';
 import type { Pagina } from '../../../api/paginacion';
@@ -12,7 +12,7 @@ const mockMarcar = marcarAvisoLeido as jest.Mock;
 function aviso(n: number, extra: Partial<Aviso> = {}): Aviso {
   return {
     uuid: `a${n}`,
-    tipo: 'VALIDACION',
+    tipo: 'PERFIL_APROBADO',
     titulo: `Título ${n}`,
     cuerpo: `Cuerpo ${n}`,
     uuidSolicitud: null,
@@ -119,6 +119,19 @@ describe('AvisosScreen', () => {
     mockListar.mockResolvedValue(pagina([]));
     await render(<AvisosScreen />);
     expect(await screen.findByText('No tenés avisos.')).toBeOnTheScreen();
+  });
+
+  it('si falla el pull-to-refresh conserva la lista y avisa', async () => {
+    mockListar.mockResolvedValueOnce(pagina([aviso(1)]));
+    await render(<AvisosScreen />);
+    expect(await screen.findByText('Título 1')).toBeOnTheScreen();
+
+    mockListar.mockRejectedValueOnce(new Error('sin red'));
+    await act(async () => screen.getByTestId('lista-avisos').props.refreshControl.props.onRefresh());
+
+    expect(await screen.findByText('No pudimos actualizar los avisos.')).toBeOnTheScreen();
+    expect(screen.getByText('Título 1')).toBeOnTheScreen();
+    expect(screen.queryByText('No pudimos cargar los avisos.')).toBeNull();
   });
 
   it('muestra el error y reintenta', async () => {
