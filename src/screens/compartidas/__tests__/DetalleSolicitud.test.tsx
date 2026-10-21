@@ -16,8 +16,10 @@ jest.mock('../../../components/ImagenProtegida', () => ({
 }));
 
 let mockParams: Record<string, string> = { uuidSolicitud: 's1' };
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: mockParams }),
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (efecto: () => void | (() => void)) => require('react').useEffect(() => efecto(), [efecto]),
 }));
 
@@ -44,6 +46,7 @@ const base = (cambios: Partial<Solicitud> = {}): Solicitud => ({
   creadoEn: '2026-10-01T10:00:00Z',
   actualizadoEn: '2026-10-01T10:00:00Z',
   accionesDisponibles: [],
+  uuidChat: 'chat-1',
   ...cambios,
 });
 
@@ -53,6 +56,7 @@ const con = (acciones: AccionSobreSolicitud[], cambios: Partial<Solicitud> = {})
 beforeEach(() => {
   mockObtener.mockReset();
   mockCambiar.mockReset();
+  mockNavigate.mockReset();
   mockRol = 'CLIENTE';
   mockParams = { uuidSolicitud: 's1' };
 });
@@ -64,6 +68,17 @@ async function abrir(s: Solicitud) {
 }
 
 describe('DetalleSolicitud', () => {
+  it('Abrir chat lleva al chat de la solicitud', async () => {
+    await abrir(base());
+    await fireEvent.press(screen.getByText('Abrir chat'));
+    expect(mockNavigate).toHaveBeenCalledWith('Chat', { uuidChat: 'chat-1' });
+  });
+
+  it('sin chat no muestra el botón', async () => {
+    await abrir(base({ uuidChat: null }));
+    expect(screen.queryByText('Abrir chat')).toBeNull();
+  });
+
   it('con accionInicial ACEPTAR abre directo la confirmación con el campo de precio', async () => {
     mockRol = 'PRESTADOR';
     mockObtener.mockResolvedValue(con(['ACEPTAR', 'RECHAZAR']));
