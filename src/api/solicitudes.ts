@@ -45,6 +45,8 @@ export interface Solicitud {
   creadoEn: string;
   actualizadoEn: string;
   accionesDisponibles: AccionSobreSolicitud[];
+  /** Chat de la solicitud (E1, E2), creado junto con ella (D33). */
+  uuidChat: string | null;
 }
 
 export interface SolicitudEnLista {

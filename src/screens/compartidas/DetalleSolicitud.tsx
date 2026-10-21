@@ -1,4 +1,4 @@
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -49,6 +49,7 @@ export function DetalleSolicitud({
   accionInicial?: AccionSobreSolicitud;
 }) {
   const { sesion } = useSesion();
+  const navigation = useNavigation<{ navigate: (ruta: 'Chat', params: { uuidChat: string }) => void }>();
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [errorDeCarga, setErrorDeCarga] = useState<string | undefined>();
   const [reintento, setReintento] = useState(0);
@@ -193,6 +194,14 @@ export function DetalleSolicitud({
         <Text style={estilos.valor}>{contraparte.nombreApellido}</Text>
         {contraparte.telefono !== null && <Text style={estilos.valor}>{`Teléfono: ${contraparte.telefono}`}</Text>}
       </Seccion>
+      {/* Punto de entrada al chat de la solicitud (porción 4, D33). */}
+      {solicitud.uuidChat !== null && (
+        <Button
+          etiqueta="Abrir chat"
+          variante="terciario"
+          onPress={() => navigation.navigate('Chat', { uuidChat: solicitud.uuidChat as string })}
+        />
+      )}
       <Seccion titulo="Servicio">
         <Text style={estilos.valor}>{solicitud.tipoServicio.nombre}</Text>
       </Seccion>
