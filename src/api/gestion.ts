@@ -109,5 +109,12 @@ export const obtenerDocumentosDePrestador = (uuidPrestador: string) =>
 export const subirDocumento = (formulario: FormData) =>
   pedir('/prestadores/me/documentos', { metodo: 'POST', cuerpo: formulario });
 
-/** E9 · GET /admin/metricas · CU12 · Gestor. Servicios activos y validaciones pendientes. */
-export const obtenerMetricas = () => pedir('/admin/metricas');
+/** Respuesta de E9: serviciosActivos son las solicitudes ACEPTADA o EN_CURSO; solicitudesPendientes, las que esperan respuesta. */
+export interface Metricas {
+  serviciosActivos: number;
+  solicitudesPendientes: number;
+  validacionesPendientes: number;
+}
+
+/** E9 · GET /admin/metricas · CU12 · Gestor. Contadores del dashboard, sin incidencias (D05). */
+export const obtenerMetricas = () => pedir<Metricas>('/admin/metricas');
