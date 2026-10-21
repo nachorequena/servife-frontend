@@ -231,6 +231,36 @@ describe('DetalleSolicitud', () => {
     await waitFor(() => expect(mockCambiar).toHaveBeenCalledWith('s1', { accion }));
   });
 
+  it.each([
+    ['CONFIRMAR_REALIZADO', 'Se realizó el servicio', '¿Confirmás que el servicio se realizó? Después vas a poder valorarlo.', 'FINALIZADA'],
+    ['NO_SE_PRESENTO', 'El prestador no se presentó', '¿Confirmás que el prestador no se presentó? La solicitud se cancela.', 'CANCELADA'],
+  ] as const)('%s (cliente) pide confirmación y manda la acción sin motivo', async (accion, etiqueta, pregunta, destino) => {
+    await abrir(con(['CANCELAR', accion]));
+    await fireEvent.press(screen.getByText(etiqueta));
+    expect(screen.getByText(pregunta)).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Motivo (opcional)')).toBeNull();
+    expect(mockCambiar).not.toHaveBeenCalled();
+    mockCambiar.mockResolvedValue(base({ estado: destino }));
+    await fireEvent.press(screen.getByText('Confirmar'));
+    await waitFor(() => expect(mockCambiar).toHaveBeenCalledWith('s1', { accion }));
+  });
+
+  it('el cliente con la solicitud FINALIZADA ve Valorar el servicio y va a la valoración', async () => {
+    await abrir(base({ estado: 'FINALIZADA' }));
+    await fireEvent.press(screen.getByText('Valorar el servicio'));
+    expect(mockNavigate).toHaveBeenCalledWith('Valoracion', { uuidSolicitud: 's1' });
+  });
+
+  it('Valorar el servicio no se ofrece al prestador ni en otros estados', async () => {
+    mockRol = 'PRESTADOR';
+    await abrir(base({ estado: 'FINALIZADA' }));
+    expect(screen.queryByText('Valorar el servicio')).toBeNull();
+    mockRol = 'CLIENTE';
+    mockObtener.mockResolvedValue(base({ estado: 'VALORADA' }));
+    await render(<DetalleSolicitud uuidSolicitud="s2" />);
+    expect(screen.queryByText('Valorar el servicio')).toBeNull();
+  });
+
   it('TRANSICION_INVALIDA muestra el mensaje y recarga el detalle', async () => {
     mockRol = 'PRESTADOR';
     await abrir(con(['INICIAR']));
