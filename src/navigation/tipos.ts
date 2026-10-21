@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+import type { UsuarioAdmin } from '../api/gestion';
 import type { RolRegistrable } from '../api/identidad';
 import type { AccionSobreSolicitud } from '../api/solicitudes';
 import type { Rol } from '../store/sesion';
@@ -53,10 +54,14 @@ export type PrestadorStackParams = {
   Avisos: undefined;
 };
 
-/** D04 no enumera las tabs del gestor: estas son las del prototipo de Figma, pendientes de confirmar. */
+/**
+ * D04 no enumera las tabs del gestor: Dashboard, Validaciones y Perfil son las del prototipo de Figma;
+ * Servicios (CU13) y Usuarios (CU12) se sumaron sin maqueta. Pendientes de confirmar.
+ */
 export type GestorTabsParams = {
   Dashboard: undefined;
   Validaciones: undefined;
+  Usuarios: undefined;
   Servicios: undefined;
   Perfil: undefined;
 };
@@ -64,5 +69,7 @@ export type GestorTabsParams = {
 export type GestorStackParams = {
   Tabs: undefined;
   FormularioTipoServicio: { uuid?: string };
+  /** Sin usuario: alta de un gestor (E13). Con usuario: edición (E14) con sus datos actuales. */
+  FormularioUsuario: { usuario?: UsuarioAdmin };
   Avisos: undefined;
 };
