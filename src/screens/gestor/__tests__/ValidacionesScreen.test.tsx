@@ -24,12 +24,16 @@ function pendiente(n: number): PrestadorPendiente {
     nombreApellido: `Prestador${n} Apellido`,
     email: `p${n}@mail.com`,
     tipoServicio: { uuid: 't1', nombre: 'Plomero', icono: 'water', requiereMatricula: true },
-    creadoEn: '2026-09-18T13:12:04Z',
+    postuladoEn: '2026-09-18T13:12:04Z',
   };
 }
 
-function pagina(contenido: PrestadorPendiente[]): Pagina<PrestadorPendiente> {
-  return { contenido, pagina: 0, tamanio: 20, totalElementos: contenido.length, totalPaginas: 1 };
+function pagina(contenido: PrestadorPendiente[], numero = 0, totalPaginas = 1): Pagina<PrestadorPendiente> {
+  return { contenido, pagina: numero, tamanio: 20, totalElementos: contenido.length, totalPaginas };
+}
+
+function lista() {
+  return screen.getByTestId('lista-validaciones');
 }
 
 beforeEach(() => {
@@ -38,44 +42,21 @@ beforeEach(() => {
 });
 
 describe('ValidacionesScreen', () => {
-  it('vuelve a pedir la lista al enfocar la pantalla', async () => {
-    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+  it('muestra un indicador mientras carga la primera página', async () => {
+    mockListar.mockReturnValue(new Promise(() => undefined));
     await render(<ValidacionesScreen />);
-    expect(await screen.findByText('Prestador1 Apellido')).toBeOnTheScreen();
-    mockListar.mockResolvedValue(pagina([pendiente(2)]));
-    await act(async () => mockFoco.disparar());
-    expect(await screen.findByText('Prestador2 Apellido')).toBeOnTheScreen();
-    expect(screen.queryByText('Prestador1 Apellido')).toBeNull();
+    expect(screen.getByText('Validaciones')).toBeOnTheScreen();
+    expect(screen.queryByTestId('lista-validaciones')).toBeNull();
+    expect(screen.queryByText('No hay prestadores pendientes.')).toBeNull();
   });
 
-  it('deslizar hacia abajo recarga la lista', async () => {
-    mockListar.mockResolvedValue(pagina([pendiente(1)]));
-    await render(<ValidacionesScreen />);
-    await screen.findByText('Prestador1 Apellido');
-    mockListar.mockResolvedValue(pagina([]));
-    await act(async () => screen.getByTestId('lista-validaciones').props.refreshControl.props.onRefresh());
-    expect(await screen.findByText('No hay prestadores pendientes.')).toBeOnTheScreen();
-    expect(mockListar).toHaveBeenCalledTimes(2);
-  });
-
-  it('un error de red se limpia al recargar con éxito', async () => {
-    mockListar.mockRejectedValue(new Error('red'));
-    await render(<ValidacionesScreen />);
-    expect(await screen.findByText(/No pudimos conectarnos/)).toBeOnTheScreen();
-    mockListar.mockResolvedValue(pagina([pendiente(1)]));
-    await act(async () => mockFoco.disparar());
-    expect(await screen.findByText('Prestador1 Apellido')).toBeOnTheScreen();
-    expect(screen.queryByText(/No pudimos conectarnos/)).toBeNull();
-  });
-
-
-  it('muestra nombre, email, rubro y fecha de cada pendiente', async () => {
+  it('muestra nombre, email, rubro y fecha de postulación de cada pendiente', async () => {
     mockListar.mockResolvedValue(pagina([pendiente(1)]));
     await render(<ValidacionesScreen />);
     expect(await screen.findByText('Prestador1 Apellido')).toBeOnTheScreen();
     expect(screen.getByText('p1@mail.com')).toBeOnTheScreen();
     expect(screen.getByText('Plomero')).toBeOnTheScreen();
-    expect(screen.getByText('18/09/2026')).toBeOnTheScreen();
+    expect(screen.getByText('Postulado el 18/09/2026')).toBeOnTheScreen();
   });
 
   it('muestra el estado vacío', async () => {
@@ -84,42 +65,111 @@ describe('ValidacionesScreen', () => {
     expect(await screen.findByText('No hay prestadores pendientes.')).toBeOnTheScreen();
   });
 
-  it('aprobar llama a E6 y saca al prestador de la lista', async () => {
-    mockListar.mockResolvedValue(pagina([pendiente(1), pendiente(2)]));
+  it('si falla la primera carga muestra el error con reintento, sin el estado vacío', async () => {
+    mockListar.mockRejectedValueOnce(new Error('red'));
+    await render(<ValidacionesScreen />);
+    expect(await screen.findByText('No pudimos cargar las validaciones.')).toBeOnTheScreen();
+    expect(screen.queryByText('No hay prestadores pendientes.')).toBeNull();
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await fireEvent.press(screen.getByText('Reintentar'));
+    expect(await screen.findByText('Prestador1 Apellido')).toBeOnTheScreen();
+    expect(screen.queryByText('No pudimos cargar las validaciones.')).toBeNull();
+  });
+
+  it('pide la página siguiente al llegar al final', async () => {
+    mockListar.mockResolvedValueOnce(pagina([pendiente(1)], 0, 2)).mockResolvedValueOnce(pagina([pendiente(2)], 1, 2));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    await act(async () => lista().props.onEndReached());
+    expect(await screen.findByText('Prestador2 Apellido')).toBeOnTheScreen();
+    expect(mockListar).toHaveBeenLastCalledWith({ page: 1, size: 20 });
+  });
+
+  it('deslizar hacia abajo recarga la lista', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    mockListar.mockResolvedValue(pagina([]));
+    await act(async () => lista().props.onRefresh());
+    expect(await screen.findByText('No hay prestadores pendientes.')).toBeOnTheScreen();
+    expect(mockListar).toHaveBeenCalledTimes(2);
+  });
+
+  it('si falla el refresco conserva la lista y avisa', async () => {
+    mockListar.mockResolvedValueOnce(pagina([pendiente(1)])).mockRejectedValueOnce(new Error('red'));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    await act(async () => lista().props.onRefresh());
+    expect(await screen.findByText('No pudimos actualizar la lista.')).toBeOnTheScreen();
+    expect(screen.getByText('Prestador1 Apellido')).toBeOnTheScreen();
+  });
+
+  it('vuelve a pedir la lista al volver a la pantalla', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    mockListar.mockResolvedValue(pagina([pendiente(2)]));
+    await act(async () => mockFoco.disparar());
+    expect(await screen.findByText('Prestador2 Apellido')).toBeOnTheScreen();
+    expect(screen.queryByText('Prestador1 Apellido')).toBeNull();
+  });
+
+  it('aprobar pide confirmación, llama a E6 y trae la lista de nuevo', async () => {
+    mockListar
+      .mockResolvedValueOnce(pagina([pendiente(1), pendiente(2)]))
+      .mockResolvedValueOnce(pagina([pendiente(2), pendiente(3)]));
     mockValidar.mockResolvedValue({ uuid: 'p1', estadoValidacion: 'APROBADO' });
     await render(<ValidacionesScreen />);
     await screen.findByText('Prestador1 Apellido');
     await fireEvent.press(screen.getAllByText('Aprobar')[0]);
+    expect(mockValidar).not.toHaveBeenCalled();
+    expect(screen.getByText('¿Aprobar a Prestador1 Apellido? Va a aparecer en las búsquedas.')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Confirmar aprobación'));
     await waitFor(() => expect(mockValidar).toHaveBeenCalledWith('p1', { decision: 'APROBAR' }));
-    await waitFor(() => expect(screen.queryByText('Prestador1 Apellido')).toBeNull());
+    expect(await screen.findByText('Prestador3 Apellido')).toBeOnTheScreen();
+    expect(screen.queryByText('Prestador1 Apellido')).toBeNull();
     expect(screen.getByText('Prestador aprobado.')).toBeOnTheScreen();
-    expect(screen.getByText('Prestador2 Apellido')).toBeOnTheScreen();
   });
 
-  it('rechazar exige confirmar y envía el motivo', async () => {
+  it('cancelar la aprobación no llama a E6', async () => {
     mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    await fireEvent.press(screen.getByText('Aprobar'));
+    await fireEvent.press(screen.getByText('Cancelar'));
+    expect(screen.queryByText('Confirmar aprobación')).toBeNull();
+    expect(mockValidar).not.toHaveBeenCalled();
+  });
+
+  it('rechazar exige confirmar y envía el motivo, limitado a 255 caracteres', async () => {
+    mockListar.mockResolvedValueOnce(pagina([pendiente(1)])).mockResolvedValueOnce(pagina([]));
     mockValidar.mockResolvedValue({ uuid: 'p1', estadoValidacion: 'RECHAZADO' });
     await render(<ValidacionesScreen />);
     await screen.findByText('Prestador1 Apellido');
     await fireEvent.press(screen.getByText('Rechazar'));
     expect(mockValidar).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Motivo (opcional)').props.maxLength).toBe(255);
     await fireEvent.changeText(screen.getByLabelText('Motivo (opcional)'), 'Sin matrícula');
     await fireEvent.press(screen.getByText('Confirmar rechazo'));
     await waitFor(() =>
       expect(mockValidar).toHaveBeenCalledWith('p1', { decision: 'RECHAZAR', motivo: 'Sin matrícula' }),
     );
-    await waitFor(() => expect(screen.queryByText('Prestador1 Apellido')).toBeNull());
+    expect(await screen.findByText('No hay prestadores pendientes.')).toBeOnTheScreen();
     expect(screen.getByText('Prestador rechazado.')).toBeOnTheScreen();
   });
 
-  it('cancelar el rechazo no llama a E6', async () => {
+  it('mientras se envía la decisión, confirmar y cancelar quedan deshabilitados', async () => {
     mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    let terminar: (valor: unknown) => void = () => undefined;
+    mockValidar.mockReturnValue(new Promise((resolver) => (terminar = resolver)));
     await render(<ValidacionesScreen />);
     await screen.findByText('Prestador1 Apellido');
     await fireEvent.press(screen.getByText('Rechazar'));
-    await fireEvent.press(screen.getByText('Cancelar'));
-    expect(screen.queryByLabelText('Motivo (opcional)')).toBeNull();
-    expect(mockValidar).not.toHaveBeenCalled();
+    fireEvent.press(screen.getByText('Confirmar rechazo'));
+    await waitFor(() => expect(mockValidar).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Confirmar rechazo' })).toBeDisabled();
+    await act(async () => terminar({ uuid: 'p1', estadoValidacion: 'RECHAZADO' }));
   });
 
   it('VALIDACION_YA_RESUELTA avisa y recarga la lista', async () => {
@@ -128,8 +178,20 @@ describe('ValidacionesScreen', () => {
     await render(<ValidacionesScreen />);
     await screen.findByText('Prestador1 Apellido');
     await fireEvent.press(screen.getByText('Aprobar'));
+    await fireEvent.press(screen.getByText('Confirmar aprobación'));
     expect(await screen.findByText('Ya fue resuelta.')).toBeOnTheScreen();
     await waitFor(() => expect(mockListar).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('No hay prestadores pendientes.')).toBeOnTheScreen();
+  });
+
+  it('otro error de E6 se muestra y deja la confirmación abierta', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    mockValidar.mockRejectedValue(new ApiError(404, 'NO_ENCONTRADO', 'No existe.'));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    await fireEvent.press(screen.getByText('Aprobar'));
+    await fireEvent.press(screen.getByText('Confirmar aprobación'));
+    expect(await screen.findByText('No existe.')).toBeOnTheScreen();
+    expect(screen.getByText('Confirmar aprobación')).toBeOnTheScreen();
   });
 });
