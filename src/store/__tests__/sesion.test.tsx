@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
+import { configurarAlExpirarSesion } from '../../api/cliente';
 import { iniciarSesion, obtenerSesion, type Usuario } from '../../api/identidad';
 import { ApiError } from '../../api/errores';
 import { guardarTokens, limpiarTokens, obtenerRefreshToken } from '../../api/tokens';
@@ -8,6 +9,13 @@ import { ProveedorDeSesion, useSesion } from '../sesion';
 
 jest.mock('../../api/identidad');
 jest.mock('../../api/tokens');
+jest.mock('../../api/cliente', () => ({ configurarAlExpirarSesion: jest.fn() }));
+
+/** Lo que el store registró en el cliente HTTP para cuando la sesión expira. */
+function alExpirar(): (aviso?: string) => void {
+  const llamadas = (configurarAlExpirarSesion as jest.Mock).mock.calls;
+  return llamadas[llamadas.length - 1][0];
+}
 
 const usuario: Usuario = {
   uuid: 'u-1',
@@ -125,5 +133,32 @@ describe('ingresar y cerrar', () => {
     await act(() => valor.cerrar());
     await waitFor(() => expect(valor.sesion).toBeNull());
     expect(limpiarTokens).toHaveBeenCalled();
+  });
+});
+
+describe('cierre por el servidor', () => {
+  beforeEach(() => (obtenerRefreshToken as jest.Mock).mockResolvedValue(null));
+
+  it('una cuenta suspendida cierra la sesión con aviso, y el próximo ingreso lo borra', async () => {
+    (iniciarSesion as jest.Mock).mockResolvedValue({ accessToken: 'a', refreshToken: 'r', rol: 'PRESTADOR' });
+    (obtenerSesion as jest.Mock).mockResolvedValue(usuario);
+    await montar();
+    await screen.findByText('sin sesión');
+    await act(() => valor.ingresar('a@b.com', 'x'));
+    expect(valor.avisoDeCierre).toBeNull();
+
+    await act(async () => alExpirar()('Tu cuenta está suspendida.'));
+    expect(valor.sesion).toBeNull();
+    expect(valor.avisoDeCierre).toBe('Tu cuenta está suspendida.');
+
+    await act(() => valor.ingresar('a@b.com', 'x'));
+    expect(valor.avisoDeCierre).toBeNull();
+  });
+
+  it('un refresh vencido cierra la sesión sin aviso', async () => {
+    await montar();
+    await screen.findByText('sin sesión');
+    await act(async () => alExpirar()());
+    expect(valor.avisoDeCierre).toBeNull();
   });
 });

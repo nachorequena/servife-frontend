@@ -14,6 +14,8 @@ import type { TokensDeSesion } from './identidad';
  * - Agrega Authorization: Bearer <access>.
  * - Ante un 401 intenta renovar el token una sola vez y reintenta; si falla, limpia la sesión
  *   y avisa para mandar a login (.ai/07-security.md).
+ * - Ante un 403 CUENTA_SUSPENDIDA (el gestor suspendió la cuenta con la sesión abierta, E4) también
+ *   limpia la sesión, y pasa el mensaje para mostrarlo en Bienvenida.
  * - Cada request tiene un tope de 10 s (configurable con tiempoMaximoMs); al vencer falla como un error de red (no ApiError) y no toca los tokens.
  * - Cualquier respuesta no 2xx se lanza como ApiError con el formato único de error.
  */
@@ -36,10 +38,10 @@ export interface Opciones {
   tiempoMaximoMs?: number;
 }
 
-let alExpirarSesion: () => void = () => {};
+let alExpirarSesion: (aviso?: string) => void = () => {};
 
-/** La registra el store de sesión para volver a login cuando el refresh falla. */
-export function configurarAlExpirarSesion(fn: () => void): void {
+/** La registra el store de sesión para volver a login cuando el refresh falla o la cuenta está suspendida (con el aviso). */
+export function configurarAlExpirarSesion(fn: (aviso?: string) => void): void {
   alExpirarSesion = fn;
 }
 
@@ -57,6 +59,14 @@ export async function pedir<T = unknown>(ruta: string, opciones: Opciones = {}):
       await expirarSesion();
       throw await ApiError.desde(respuesta);
     }
+  }
+
+  if (respuesta.status === 403 && !opciones.publico) {
+    const error = await ApiError.desde(respuesta);
+    if (error.codigo === 'CUENTA_SUSPENDIDA') {
+      await expirarSesion(error.message);
+    }
+    throw error;
   }
 
   if (!respuesta.ok) {
@@ -116,9 +126,9 @@ export async function renovarSesionParaRecursos(): Promise<boolean> {
   }
 }
 
-async function expirarSesion(): Promise<void> {
+async function expirarSesion(aviso?: string): Promise<void> {
   await limpiarTokens();
-  alExpirarSesion();
+  alExpirarSesion(aviso);
 }
 
 async function renovar(): Promise<boolean> {

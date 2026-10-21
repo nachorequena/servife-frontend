@@ -16,6 +16,8 @@ interface ValorDeSesion {
   sesion: Sesion | null;
   /** true hasta resolver el refresh token guardado (restauración al abrir la app). */
   restaurando: boolean;
+  /** Por qué se cerró la sesión sin que el usuario lo pidiera (cuenta suspendida); lo muestra Bienvenida. */
+  avisoDeCierre: string | null;
   /** A2 → guardar tokens → A4 → sesión. Devuelve el rol real de la cuenta. Relanza el error para que la pantalla lo muestre. */
   ingresar: (email: string, contrasenia: string) => Promise<Rol>;
   /** Tras A6 (editar perfil). */
@@ -33,9 +35,13 @@ const ContextoDeSesion = createContext<ValorDeSesion | null>(null);
 export function ProveedorDeSesion({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Sesion | null>(null);
   const [restaurando, setRestaurando] = useState(true);
+  const [avisoDeCierre, setAvisoDeCierre] = useState<string | null>(null);
 
   useEffect(() => {
-    configurarAlExpirarSesion(() => setSesion(null));
+    configurarAlExpirarSesion((aviso) => {
+      setAvisoDeCierre(aviso ?? null);
+      setSesion(null);
+    });
   }, []);
 
   useEffect(() => {
@@ -70,6 +76,7 @@ export function ProveedorDeSesion({ children }: { children: ReactNode }) {
     await guardarTokens({ accessToken, refreshToken });
     try {
       const usuario = await obtenerSesion();
+      setAvisoDeCierre(null);
       setSesion({ rol: usuario.rol, usuario });
       return usuario.rol;
     } catch (error) {
@@ -88,8 +95,8 @@ export function ProveedorDeSesion({ children }: { children: ReactNode }) {
   }, []);
 
   const valor = useMemo(
-    () => ({ sesion, restaurando, ingresar, actualizarUsuario, cerrar }),
-    [sesion, restaurando, ingresar, actualizarUsuario, cerrar],
+    () => ({ sesion, restaurando, avisoDeCierre, ingresar, actualizarUsuario, cerrar }),
+    [sesion, restaurando, avisoDeCierre, ingresar, actualizarUsuario, cerrar],
   );
   return <ContextoDeSesion.Provider value={valor}>{children}</ContextoDeSesion.Provider>;
 }
