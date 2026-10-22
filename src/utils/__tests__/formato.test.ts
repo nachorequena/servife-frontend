@@ -1,6 +1,7 @@
 import {
   dateAFechaSola,
   dateAHora,
+  diaAnterior,
   diaDeSemana,
   fechaADate,
   formatearCentavos,
@@ -124,5 +125,16 @@ describe('fecha y hora de los selectores', () => {
     expect(dateAHora(new Date(2026, 9, 9, 0, 0))).toBe('00:00');
     const d = horaADate('07:30');
     expect([d.getHours(), d.getMinutes()]).toEqual([7, 30]);
+  });
+});
+
+describe('diaAnterior', () => {
+  it.each([
+    ['2026-10-08', '2026-10-07'],
+    ['2026-10-01', '2026-09-30'],
+    ['2026-01-01', '2025-12-31'],
+    ['2024-03-01', '2024-02-29'],
+  ])('%s → %s', (hoy, ayer) => {
+    expect(diaAnterior(hoy)).toBe(ayer);
   });
 });
