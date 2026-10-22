@@ -5,6 +5,7 @@ import {
   eliminarUsuario,
   listarUsuarios,
   listarValidacionesPendientes,
+  obtenerMetricas,
   validarPrestador,
 } from '../gestion';
 import { prepararApi, ultimaLlamada } from '../../testing/api';
@@ -86,5 +87,14 @@ describe('api/gestion (usuarios)', () => {
     const { url, init } = ultimaLlamada();
     expect(init.method).toBe('DELETE');
     expect(url).toMatch(/\/admin\/usuarios\/u-1$/);
+  });
+});
+
+describe('api/gestion (métricas)', () => {
+  it('E9 obtenerMetricas: GET /admin/metricas', async () => {
+    await obtenerMetricas();
+    const { url, init } = ultimaLlamada();
+    expect(init.method).toBe('GET');
+    expect(url).toMatch(/\/admin\/metricas$/);
   });
 });
