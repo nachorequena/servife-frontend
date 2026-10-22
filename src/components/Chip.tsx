@@ -36,5 +36,6 @@ const estilos = StyleSheet.create({
   },
   seleccionado: { backgroundColor: colores.verde, borderColor: colores.verde },
   texto: { ...tipografia.cuerpo, color: colores.tinta },
-  textoSeleccionado: { color: colores.blanco, fontWeight: '700' },
+  // Texto oscuro sobre verde: el blanco daba 2,3:1 (WCAG pide 4,5:1); el oscuro da 6:1.
+  textoSeleccionado: { color: colores.tinta, fontWeight: '700' },
 });
