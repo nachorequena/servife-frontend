@@ -57,6 +57,7 @@ export const tamanios = {
   celdaIcono: 48,
   globo: 18, // globo de la campana
   punto: 10, // punto de aviso sin leer
+  puntoCarrusel: 6, // indicador de la foto actual en un carrusel
   miniatura: 72, // miniatura de imagen adjunta
 } as const;
 
