@@ -3,7 +3,9 @@ import {
   formatearCentavos,
   formatearFecha,
   formatearFechaHora,
+  formatearFechaLarga,
   formatearFechaSola,
+  haceCuanto,
   hoyEnArgentina,
   nombresDeDias,
   pesosACentavos,
@@ -101,4 +103,21 @@ describe('pesosACentavos', () => {
       expect(pesosACentavos(texto)).toBeNull();
     },
   );
+});
+
+describe('haceCuanto', () => {
+  const ahora = new Date('2026-10-22T15:00:00Z'); // 12:00 en Argentina
+  it('cuenta en días de Argentina', () => {
+    expect(haceCuanto('2026-10-22T13:00:00Z', ahora)).toBe('hoy');
+    expect(haceCuanto('2026-10-22T02:00:00Z', ahora)).toBe('ayer'); // 23:00 del 21 en Argentina
+    expect(haceCuanto('2026-10-19T15:00:00Z', ahora)).toBe('hace 3 días');
+    expect(haceCuanto('2026-10-01T15:00:00Z', ahora)).toBe('hace 3 semanas');
+    expect(haceCuanto('2026-07-01T15:00:00Z', ahora)).toBe('01/07/2026');
+  });
+});
+
+describe('formatearFechaLarga', () => {
+  it('día de la semana, número y mes', () => {
+    expect(formatearFechaLarga(new Date('2026-10-22T15:00:00Z'))).toBe('jueves 22 de octubre');
+  });
 });
