@@ -17,6 +17,7 @@ import { obtenerUbicacionActual, type Coordenadas } from '../../hooks/useUbicaci
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
 import { MENSAJE_DE_RED } from '../../utils/errores';
+import { EntradaDeDocumentos } from './EntradaDeDocumentos';
 
 const MENSAJE_DE_CARGA = 'No pudimos cargar tu servicio. Revisá tu conexión e intentá de nuevo.';
 const MENSAJE_DE_RADIO = 'tiene que ser un número entre 1 y 100';
@@ -161,6 +162,7 @@ export function MiServicio() {
       <Text style={estilos.aviso}>Pantalla provisoria: sin diseño en la maqueta (D10).</Text>
       <Text style={estilos.titulo}>Mi servicio</Text>
       {estado !== undefined && <Text style={estilos.estado}>{TEXTO_DE_ESTADO[estado]}</Text>}
+      {estado === 'PENDIENTE' && <EntradaDeDocumentos />}
 
       <Text style={estilos.seccion}>Servicio que ofrecés</Text>
       <View style={estilos.fila}>

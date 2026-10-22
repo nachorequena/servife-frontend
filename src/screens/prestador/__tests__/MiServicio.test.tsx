@@ -1,4 +1,4 @@
-import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 
 import {
   actualizarMiPerfilDePrestador,
@@ -26,7 +26,9 @@ jest.mock('../../../store/sesion', () => ({
 }));
 
 const mockFoco: { disparar: () => void } = { disparar: () => undefined };
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (efecto: () => void) => {
     require('react').useEffect(efecto, [efecto]);
     mockFoco.disparar = efecto;
@@ -71,6 +73,17 @@ describe('MiServicio', () => {
     await act(async () => mockFoco.disparar());
     expect(await screen.findByText('Perfil aprobado. Aparecés en las búsquedas.')).toBeTruthy();
     expect(mockC5).toHaveBeenCalledTimes(2);
+  });
+
+  it('en revisión ofrece cargar los documentos (E7); aprobado, no', async () => {
+    mockPerfil.mockResolvedValue({ ...perfil, estadoValidacion: 'PENDIENTE' });
+    await render(<MiServicio />);
+    await fireEvent.press(await screen.findByText('Documentos para la validación'));
+    expect(mockNavigate).toHaveBeenCalledWith('Documentos');
+    mockPerfil.mockResolvedValue({ ...perfil, estadoValidacion: 'APROBADO' });
+    await act(async () => mockFoco.disparar());
+    await screen.findByText('Perfil aprobado. Aparecés en las búsquedas.');
+    expect(screen.queryByText('Documentos para la validación')).toBeNull();
   });
 
   it('explica el rechazo y cómo volver a revisión', async () => {

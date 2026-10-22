@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Campanita } from '../components/Campanita';
 import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { DashboardScreen } from '../screens/gestor/DashboardScreen';
+import { ExpedienteScreen } from '../screens/gestor/ExpedienteScreen';
 import { FormularioTipoServicio } from '../screens/gestor/FormularioTipoServicio';
 import { FormularioUsuario } from '../screens/gestor/FormularioUsuario';
 import { PerfilGestorScreen } from '../screens/gestor/PerfilGestorScreen';
@@ -47,6 +48,7 @@ export function GestorNavigator() {
         component={FormularioUsuario}
         options={({ route }) => ({ title: route.params?.usuario ? 'Editar usuario' : 'Nuevo gestor' })}
       />
+      <Stack.Screen name="Expediente" component={ExpedienteScreen} options={{ title: 'Expediente de validación' }} />
       <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
     </Stack.Navigator>
   );

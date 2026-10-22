@@ -8,7 +8,9 @@ import { ValidacionesScreen } from '../ValidacionesScreen';
 jest.mock('../../../api/gestion', () => ({ listarValidacionesPendientes: jest.fn(), validarPrestador: jest.fn() }));
 
 const mockFoco: { disparar: () => void } = { disparar: () => undefined };
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (efecto: () => void) => {
     require('react').useEffect(efecto, [efecto]);
     mockFoco.disparar = efecto;
@@ -193,5 +195,24 @@ describe('ValidacionesScreen', () => {
     await fireEvent.press(screen.getByText('Confirmar aprobación'));
     expect(await screen.findByText('No existe.')).toBeOnTheScreen();
     expect(screen.getByText('Confirmar aprobación')).toBeOnTheScreen();
+  });
+
+  it('Ver expediente abre el expediente del prestador', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    await fireEvent.press(screen.getByText('Ver expediente'));
+    expect(mockNavigate).toHaveBeenCalledWith('Expediente', { uuidPrestador: 'p1', nombreApellido: 'Prestador1 Apellido' });
+  });
+
+  it('un 409 por expediente incompleto se muestra y el prestador sigue en la lista', async () => {
+    mockListar.mockResolvedValue(pagina([pendiente(1)]));
+    mockValidar.mockRejectedValue(new ApiError(409, 'EXPEDIENTE_INCOMPLETO', 'Falta el DNI (frente y dorso) o la declaración jurada del prestador.'));
+    await render(<ValidacionesScreen />);
+    await screen.findByText('Prestador1 Apellido');
+    await fireEvent.press(screen.getByText('Aprobar'));
+    await fireEvent.press(screen.getByText('Confirmar aprobación'));
+    expect(await screen.findByText(/Falta el DNI/)).toBeOnTheScreen();
+    expect(screen.getByText('Prestador1 Apellido')).toBeOnTheScreen();
   });
 });

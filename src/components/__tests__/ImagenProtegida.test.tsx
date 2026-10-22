@@ -78,4 +78,12 @@ describe('ImagenProtegida', () => {
     expect(errores).not.toHaveBeenCalled();
     errores.mockRestore();
   });
+
+  it('con descargar propio no usa GET /archivos', async () => {
+    const descargarDocumento = jest.fn(() => Promise.resolve('file:///cache/documentos/d-1'));
+    await render(<ImagenProtegida uuid="d-1" descargar={descargarDocumento} accessibilityLabel="DNI" />);
+    expect((await screen.findByLabelText('DNI')).props.source).toEqual({ uri: 'file:///cache/documentos/d-1' });
+    expect(descargarDocumento).toHaveBeenCalledTimes(1);
+    expect(mockDescargar).not.toHaveBeenCalled();
+  });
 });
