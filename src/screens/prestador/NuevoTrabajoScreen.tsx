@@ -15,6 +15,17 @@ import { esFechaReal, formatearFechaSola, hoyEnArgentina } from '../../utils/for
 
 /** Las 50 terminadas más recientes (el máximo de una página): alcanza para elegir con qué solicitud vincular. */
 const SOLICITUDES_A_OFRECER = 50;
+const LARGO_DESCRIPCION_EN_OPCION = 30;
+
+/** Cliente, fecha y comienzo de la descripción: distingue dos solicitudes del mismo cliente y el mismo día. */
+function etiquetaDeSolicitud(s: SolicitudEnLista): string {
+  const caracteres = Array.from(s.descripcion); // por caracteres, no por unidades UTF-16: un emoji no queda partido
+  const descripcion =
+    caracteres.length > LARGO_DESCRIPCION_EN_OPCION
+      ? `${caracteres.slice(0, LARGO_DESCRIPCION_EN_OPCION).join('').trimEnd()}…`
+      : s.descripcion;
+  return `${s.contraparte.nombreApellido} · ${formatearFechaSola(s.fechaDeseada)} · ${descripcion}`;
+}
 
 interface Errores {
   titulo?: string;
@@ -170,7 +181,7 @@ export function NuevoTrabajoScreen() {
             {solicitudes.map((s) => (
               <Chip
                 key={s.uuid}
-                etiqueta={`${s.contraparte.nombreApellido} · ${formatearFechaSola(s.fechaDeseada)}`}
+                etiqueta={etiquetaDeSolicitud(s)}
                 seleccionado={uuidSolicitud === s.uuid}
                 onPress={() => elegirSolicitud(s)}
               />

@@ -83,9 +83,26 @@ describe('NuevoTrabajoScreen', () => {
   it('ofrece las solicitudes terminadas del prestador', async () => {
     await abrir();
     expect(mockListar).toHaveBeenCalledWith({ estados: ['FINALIZADA', 'VALORADA'], page: 0, size: 50 });
-    expect(screen.getByText('Cliente 1 · 09/10/2026')).toBeOnTheScreen();
-    expect(screen.getByText('Cliente 2 · 15/10/2026')).toBeOnTheScreen();
+    expect(screen.getByText('Cliente 1 · 09/10/2026 · Pérdida')).toBeOnTheScreen();
+    expect(screen.getByText('Cliente 2 · 15/10/2026 · Pérdida')).toBeOnTheScreen();
     expect(mockSetOptions).not.toHaveBeenCalled();
+  });
+
+  it('dos solicitudes del mismo cliente y el mismo día se distinguen por la descripción, recortada', async () => {
+    mockListar.mockResolvedValue({
+      contenido: [
+        { ...solicitud(1, '2026-10-21'), descripcion: 'Pérdida en la cocina' },
+        { ...solicitud(2, '2026-10-21'), contraparte: { uuid: 'c1', nombreApellido: 'Cliente 1', telefono: null },
+          descripcion: 'Cambio de la canilla del baño y de los flexibles de la ducha' },
+      ],
+      pagina: 0,
+      tamanio: 50,
+      totalElementos: 2,
+      totalPaginas: 1,
+    });
+    await abrir();
+    expect(screen.getByText('Cliente 1 · 21/10/2026 · Pérdida en la cocina')).toBeOnTheScreen();
+    expect(screen.getByText('Cliente 1 · 21/10/2026 · Cambio de la canilla del baño…')).toBeOnTheScreen();
   });
 
   it('el título es obligatorio y la fecha, si está, tiene que ser válida', async () => {
@@ -111,10 +128,10 @@ describe('NuevoTrabajoScreen', () => {
     mockCrear.mockResolvedValue(existente);
     await abrir();
     await fireEvent.changeText(screen.getByLabelText('Título'), 'Baño');
-    await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026'));
+    await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026 · Pérdida'));
     expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-09');
     // otra solicitud reemplaza la fecha precargada que no se tocó
-    await fireEvent.press(screen.getByText('Cliente 2 · 15/10/2026'));
+    await fireEvent.press(screen.getByText('Cliente 2 · 15/10/2026 · Pérdida'));
     expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-15');
 
     await fireEvent.press(screen.getByText('Publicar'));
@@ -129,7 +146,7 @@ describe('NuevoTrabajoScreen', () => {
   it('una fecha escrita a mano no se pisa al elegir solicitud', async () => {
     await abrir();
     await fireEvent.changeText(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)'), '2026-10-10');
-    await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026'));
+    await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026 · Pérdida'));
     expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-10');
   });
 
@@ -152,7 +169,7 @@ describe('NuevoTrabajoScreen', () => {
     );
     await abrir();
     await fireEvent.changeText(screen.getByLabelText('Título'), 'Baño');
-    await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026'));
+    await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026 · Pérdida'));
     await fireEvent.press(screen.getByText('Publicar'));
 
     expect(await screen.findByText('ya tiene una publicación')).toBeOnTheScreen();
@@ -188,7 +205,7 @@ describe('NuevoTrabajoScreen', () => {
       expect(screen.getByLabelText('Descripción').props.value).toBe('Cañerías');
       expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-01');
       expect(screen.getByText('img:img-viejo')).toBeOnTheScreen();
-      expect(screen.getByRole('button', { name: 'Cliente 1 · 09/10/2026' })).toBeSelected();
+      expect(screen.getByRole('button', { name: 'Cliente 1 · 09/10/2026 · Pérdida' })).toBeSelected();
     });
 
     it('guarda con PUT, reemplazando todo, y vuelve al detalle con lo que devolvió el backend', async () => {
