@@ -103,3 +103,34 @@ describe('SelectorDeHora', () => {
     expect(onChange).toHaveBeenCalledWith('17:45');
   });
 });
+
+describe('SelectorDeFecha opcional y con máximo', () => {
+  it('en Android abre en la fecha inicial con el máximo cuando no hay valor', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    await render(<SelectorDeFecha etiqueta="Nacimiento" value="" inicial="2000-01-01" maximo="2026-10-07" onChange={jest.fn()} />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Nacimiento' }));
+
+    const opciones = mockAbrir.mock.calls[0][0];
+    expect((opciones.value as Date).getFullYear()).toBe(2000);
+    expect((opciones.maximumDate as Date).getDate()).toBe(7);
+    expect(opciones.minimumDate).toBeUndefined();
+  });
+
+  it('con valor abre en ese valor aunque haya fecha inicial', async () => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+    await render(<SelectorDeFecha etiqueta="Nacimiento" value="1990-05-20" inicial="2000-01-01" onChange={jest.fn()} />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Nacimiento' }));
+    expect((mockAbrir.mock.calls[0][0].value as Date).getFullYear()).toBe(1990);
+  });
+
+  it('Quitar fecha solo aparece con onQuitar y con valor, y vacía el campo', async () => {
+    const onQuitar = jest.fn();
+    const { rerender } = await render(<SelectorDeFecha etiqueta="Fecha" value="" onChange={jest.fn()} onQuitar={onQuitar} />);
+    expect(screen.queryByText('Quitar fecha')).toBeNull();
+    await rerender(<SelectorDeFecha etiqueta="Fecha" value="2026-10-09" onChange={jest.fn()} />);
+    expect(screen.queryByText('Quitar fecha')).toBeNull();
+    await rerender(<SelectorDeFecha etiqueta="Fecha" value="2026-10-09" onChange={jest.fn()} onQuitar={onQuitar} />);
+    await fireEvent.press(screen.getByText('Quitar fecha'));
+    expect(onQuitar).toHaveBeenCalledTimes(1);
+  });
+});
