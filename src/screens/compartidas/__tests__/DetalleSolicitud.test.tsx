@@ -16,8 +16,10 @@ jest.mock('../../../components/ImagenProtegida', () => ({
 }));
 
 let mockParams: Record<string, string> = { uuidSolicitud: 's1' };
+const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({ params: mockParams }),
+  useNavigation: () => ({ navigate: mockNavigate }),
   useFocusEffect: (efecto: () => void | (() => void)) => require('react').useEffect(() => efecto(), [efecto]),
 }));
 
@@ -44,6 +46,7 @@ const base = (cambios: Partial<Solicitud> = {}): Solicitud => ({
   creadoEn: '2026-10-01T10:00:00Z',
   actualizadoEn: '2026-10-01T10:00:00Z',
   accionesDisponibles: [],
+  uuidChat: 'chat-1',
   ...cambios,
 });
 
@@ -53,6 +56,7 @@ const con = (acciones: AccionSobreSolicitud[], cambios: Partial<Solicitud> = {})
 beforeEach(() => {
   mockObtener.mockReset();
   mockCambiar.mockReset();
+  mockNavigate.mockReset();
   mockRol = 'CLIENTE';
   mockParams = { uuidSolicitud: 's1' };
 });
@@ -64,6 +68,17 @@ async function abrir(s: Solicitud) {
 }
 
 describe('DetalleSolicitud', () => {
+  it('Abrir chat lleva al chat de la solicitud', async () => {
+    await abrir(base());
+    await fireEvent.press(screen.getByText('Abrir chat'));
+    expect(mockNavigate).toHaveBeenCalledWith('Chat', { uuidChat: 'chat-1' });
+  });
+
+  it('sin chat no muestra el botón', async () => {
+    await abrir(base({ uuidChat: null }));
+    expect(screen.queryByText('Abrir chat')).toBeNull();
+  });
+
   it('con accionInicial ACEPTAR abre directo la confirmación con el campo de precio', async () => {
     mockRol = 'PRESTADOR';
     mockObtener.mockResolvedValue(con(['ACEPTAR', 'RECHAZAR']));
@@ -214,6 +229,36 @@ describe('DetalleSolicitud', () => {
     mockCambiar.mockResolvedValue(base({ estado: 'EN_CURSO' }));
     await fireEvent.press(screen.getByText('Confirmar'));
     await waitFor(() => expect(mockCambiar).toHaveBeenCalledWith('s1', { accion }));
+  });
+
+  it.each([
+    ['CONFIRMAR_REALIZADO', 'Se realizó el servicio', '¿Confirmás que el servicio se realizó? Después vas a poder valorarlo.', 'FINALIZADA'],
+    ['NO_SE_PRESENTO', 'El prestador no se presentó', '¿Confirmás que el prestador no se presentó? La solicitud se cancela.', 'CANCELADA'],
+  ] as const)('%s (cliente) pide confirmación y manda la acción sin motivo', async (accion, etiqueta, pregunta, destino) => {
+    await abrir(con(['CANCELAR', accion]));
+    await fireEvent.press(screen.getByText(etiqueta));
+    expect(screen.getByText(pregunta)).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Motivo (opcional)')).toBeNull();
+    expect(mockCambiar).not.toHaveBeenCalled();
+    mockCambiar.mockResolvedValue(base({ estado: destino }));
+    await fireEvent.press(screen.getByText('Confirmar'));
+    await waitFor(() => expect(mockCambiar).toHaveBeenCalledWith('s1', { accion }));
+  });
+
+  it('el cliente con la solicitud FINALIZADA ve Valorar el servicio y va a la valoración', async () => {
+    await abrir(base({ estado: 'FINALIZADA' }));
+    await fireEvent.press(screen.getByText('Valorar el servicio'));
+    expect(mockNavigate).toHaveBeenCalledWith('Valoracion', { uuidSolicitud: 's1' });
+  });
+
+  it('Valorar el servicio no se ofrece al prestador ni en otros estados', async () => {
+    mockRol = 'PRESTADOR';
+    await abrir(base({ estado: 'FINALIZADA' }));
+    expect(screen.queryByText('Valorar el servicio')).toBeNull();
+    mockRol = 'CLIENTE';
+    mockObtener.mockResolvedValue(base({ estado: 'VALORADA' }));
+    await render(<DetalleSolicitud uuidSolicitud="s2" />);
+    expect(screen.queryByText('Valorar el servicio')).toBeNull();
   });
 
   it('TRANSICION_INVALIDA muestra el mensaje y recarga el detalle', async () => {
