@@ -1,10 +1,15 @@
 import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ApiError } from '../../../api/errores';
+import { espaciado } from '../../../theme';
 import { IngresarScreen } from '../IngresarScreen';
 
 const mockIngresar = jest.fn();
-jest.mock('../../../store/sesion', () => ({ useSesion: () => ({ ingresar: mockIngresar }) }));
+const mockSesion: { avisoDeCierre: string | null } = { avisoDeCierre: null };
+jest.mock('../../../store/sesion', () => ({
+  useSesion: () => ({ ingresar: mockIngresar, avisoDeCierre: mockSesion.avisoDeCierre }),
+}));
 
 const mockHuella = {
   huellaDisponible: jest.fn(),
@@ -23,8 +28,14 @@ jest.mock('../../../api/huella', () => ({
 
 const navigation = { navigate: jest.fn() } as any;
 
-async function montar(params?: { aviso?: string; rol?: 'CLIENTE' | 'PRESTADOR' | 'GESTOR' }) {
-  await render(<IngresarScreen navigation={navigation} route={{ key: 'i', name: 'Ingresar', params } as any} />);
+const metricas = { frame: { x: 0, y: 0, width: 400, height: 800 }, insets: { top: 30, left: 0, right: 0, bottom: 0 } };
+
+async function montar(params?: { aviso?: string }) {
+  await render(
+    <SafeAreaProvider initialMetrics={metricas}>
+      <IngresarScreen navigation={navigation} route={{ key: 'i', name: 'Ingresar', params } as any} />
+    </SafeAreaProvider>,
+  );
 }
 
 async function completar(correo: string, contrasenia: string) {
@@ -36,6 +47,7 @@ async function completar(correo: string, contrasenia: string) {
 
 beforeEach(() => {
   mockIngresar.mockReset();
+  mockSesion.avisoDeCierre = null;
   navigation.navigate.mockReset();
   mockHuella.huellaDisponible.mockReset().mockResolvedValue(false);
   mockHuella.correoConHuella.mockReset().mockResolvedValue(null);
@@ -94,24 +106,80 @@ describe('IngresarScreen', () => {
     expect(await screen.findByText('No pudimos conectarnos. Revisá tu conexión e intentá de nuevo.')).toBeTruthy();
   });
 
-  it('los enlaces llevan a Recuperar y a Registro como cliente', async () => {
+  it('es la primera pantalla: muestra el logo debajo de la barra de estado', async () => {
+    await montar();
+    expect(screen.getByTestId('barra-logo')).toHaveStyle({ paddingTop: 30 + espaciado.s });
+    expect(screen.getByText('Inicio de sesión')).toBeTruthy();
+  });
+
+  it('muestra el aviso de cierre si la sesión se cerró por una suspensión', async () => {
+    mockSesion.avisoDeCierre = 'Tu cuenta está suspendida.';
+    await montar();
+    expect(screen.getByText('Tu cuenta está suspendida.')).toBeTruthy();
+  });
+
+  it('los enlaces llevan a Recuperar y a Registro, siempre visibles', async () => {
     await montar();
     const usuario = userEvent.setup();
     await usuario.press(screen.getByRole('link', { name: '¿Olvidaste tu contraseña?' }));
     expect(navigation.navigate).toHaveBeenCalledWith('Recuperar');
     await usuario.press(screen.getByRole('link', { name: '¿No tenés cuenta? Registrate' }));
-    expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'CLIENTE' });
+    expect(navigation.navigate).toHaveBeenCalledWith('Registro');
   });
 
-  it('el ingreso de administrador no ofrece registrarse', async () => {
-    await montar({ rol: 'GESTOR' });
-    expect(screen.queryByRole('link', { name: '¿No tenés cuenta? Registrate' })).toBeNull();
-  });
+  describe('cuenta de cliente y de prestador con el mismo email (D43)', () => {
+    const elegirRol = new ApiError(409, 'ELEGIR_ROL', 'Tenés una cuenta de cliente y una de prestador. Elegí con cuál ingresar.');
 
-  it('si viene de "Prestador", el registro abre con el rol de prestador', async () => {
-    await montar({ rol: 'PRESTADOR' });
-    await userEvent.setup().press(screen.getByRole('link', { name: '¿No tenés cuenta? Registrate' }));
-    expect(navigation.navigate).toHaveBeenCalledWith('Registro', { rol: 'PRESTADOR' });
+    it('pregunta con cuál ingresar y entra con el rol elegido', async () => {
+      mockIngresar.mockRejectedValueOnce(elegirRol).mockResolvedValueOnce('PRESTADOR');
+      await montar();
+      await completar('ana@mail.com', 'Clave123');
+
+      expect(await screen.findByText('¿Cómo querés ingresar?')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Continuar' })).toBeNull();
+      await userEvent.setup().press(screen.getByRole('button', { name: 'Prestador' }));
+
+      expect(mockIngresar).toHaveBeenLastCalledWith('ana@mail.com', 'Clave123', 'PRESTADOR');
+      expect(screen.queryByText('Tenés una cuenta de cliente y una de prestador. Elegí con cuál ingresar.')).toBeNull();
+    });
+
+    it('si cambian el correo, la elección se descarta', async () => {
+      mockIngresar.mockRejectedValueOnce(elegirRol);
+      await montar();
+      await completar('ana@mail.com', 'Clave123');
+      await screen.findByText('¿Cómo querés ingresar?');
+
+      await userEvent.setup().type(screen.getByLabelText('Correo'), 'x');
+
+      expect(screen.queryByText('¿Cómo querés ingresar?')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Continuar' })).toBeTruthy();
+    });
+
+    it('con el switch prendido guarda la huella recién después de elegir', async () => {
+      mockHuella.huellaDisponible.mockResolvedValue(true);
+      mockIngresar.mockRejectedValueOnce(elegirRol).mockResolvedValueOnce('CLIENTE');
+      await montar();
+      await fireEvent(await screen.findByLabelText('Usar mi huella para ingresar'), 'valueChange', true);
+      await completar('ana@mail.com', 'Clave123');
+      expect(mockHuella.guardarConHuella).not.toHaveBeenCalled();
+
+      await userEvent.setup().press(await screen.findByRole('button', { name: 'Cliente' }));
+
+      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('ana@mail.com', 'Clave123');
+    });
+
+    it('con la huella también pregunta y entra con el rol elegido', async () => {
+      mockHuella.huellaDisponible.mockResolvedValue(true);
+      mockHuella.correoConHuella.mockResolvedValue('ana@mail.com');
+      mockHuella.leerConHuella.mockResolvedValue({ estado: 'ok', correo: 'ana@mail.com', contrasenia: 'Clave123' });
+      mockIngresar.mockRejectedValueOnce(elegirRol).mockResolvedValueOnce('CLIENTE');
+      await montar();
+      await userEvent.setup().press(await screen.findByRole('button', { name: 'Ingresar con huella' }));
+      await userEvent.setup().press(await screen.findByRole('button', { name: 'Cliente' }));
+
+      expect(mockIngresar).toHaveBeenLastCalledWith('ana@mail.com', 'Clave123', 'CLIENTE');
+      expect(mockHuella.guardarConHuella).not.toHaveBeenCalled();
+    });
   });
 
   describe('ingreso con huella', () => {
@@ -145,35 +213,10 @@ describe('IngresarScreen', () => {
       await montar();
       await fireEvent(await screen.findByLabelText('Usar mi huella para ingresar'), 'valueChange', true);
       await completar('ana@mail.com', 'Clave123');
-      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('CLIENTE', 'ana@mail.com', 'Clave123');
+      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('ana@mail.com', 'Clave123');
       expect(mockIngresar.mock.invocationCallOrder[0]).toBeLessThan(
         mockHuella.guardarConHuella.mock.invocationCallOrder[0],
       );
-    });
-
-    it('guarda la huella bajo el rol real de la cuenta, no el del botón de entrada', async () => {
-      mockHuella.huellaDisponible.mockResolvedValue(true);
-      mockIngresar.mockResolvedValue('CLIENTE');
-      await montar({ rol: 'PRESTADOR' });
-      await fireEvent(await screen.findByLabelText('Usar mi huella para ingresar'), 'valueChange', true);
-      await completar('ana@mail.com', 'Clave123');
-      expect(mockHuella.guardarConHuella).toHaveBeenCalledWith('CLIENTE', 'ana@mail.com', 'Clave123');
-    });
-
-    it('solo ofrece la huella guardada para el rol de la pantalla', async () => {
-      mockHuella.huellaDisponible.mockResolvedValue(true);
-      mockHuella.correoConHuella.mockImplementation((rol: string) => Promise.resolve(rol === 'CLIENTE' ? 'ana@mail.com' : null));
-      await montar({ rol: 'PRESTADOR' });
-      expect(await screen.findByLabelText('Usar mi huella para ingresar')).toBeTruthy();
-      expect(screen.queryByRole('button', { name: 'Ingresar con huella' })).toBeNull();
-      expect(mockHuella.correoConHuella).toHaveBeenCalledWith('PRESTADOR');
-    });
-
-    it('sin rol en los parámetros usa el de cliente', async () => {
-      mockHuella.huellaDisponible.mockResolvedValue(true);
-      await montar();
-      await screen.findByLabelText('Usar mi huella para ingresar');
-      expect(mockHuella.correoConHuella).toHaveBeenCalledWith('CLIENTE');
     });
 
     it('con el switch prendido no guarda nada si las credenciales son inválidas', async () => {
@@ -224,7 +267,7 @@ describe('IngresarScreen', () => {
             'Tu contraseña cambió. Ingresá con correo y contraseña para volver a activar la huella.',
           ),
         ).toBeTruthy();
-        expect(mockHuella.olvidarHuella).toHaveBeenCalledWith('CLIENTE');
+        expect(mockHuella.olvidarHuella).toHaveBeenCalledWith();
         expect(screen.queryByRole('button', { name: 'Ingresar con huella' })).toBeNull();
         expect(screen.getByLabelText('Usar mi huella para ingresar')).toBeTruthy();
       });
@@ -264,7 +307,7 @@ describe('IngresarScreen', () => {
       it('"No usar más la huella" la olvida y muestra el switch', async () => {
         await montar();
         await userEvent.setup().press(await screen.findByRole('link', { name: 'No usar más la huella' }));
-        expect(mockHuella.olvidarHuella).toHaveBeenCalledWith('CLIENTE');
+        expect(mockHuella.olvidarHuella).toHaveBeenCalledWith();
         expect(screen.queryByRole('button', { name: 'Ingresar con huella' })).toBeNull();
         expect(screen.getByLabelText('Usar mi huella para ingresar')).toBeTruthy();
       });

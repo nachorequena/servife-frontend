@@ -132,7 +132,7 @@ describe('MiCuenta', () => {
       await completar('vieja1234', 'nueva1234', 'nueva1234');
       expect(mockA7).toHaveBeenCalledWith({ contraseniaActual: 'vieja1234', contraseniaNueva: 'nueva1234' });
       expect(await screen.findByText('Contraseña actualizada.')).toBeTruthy();
-      expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'nueva1234');
+      expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'nueva1234', mockUsuario.rol);
       expect(mockCerrar).not.toHaveBeenCalled();
       expect(screen.getByLabelText('Contraseña actual').props.value).toBe('');
       expect(screen.getByLabelText('Contraseña nueva').props.value).toBe('');
@@ -145,7 +145,7 @@ describe('MiCuenta', () => {
       await render(<MiCuenta />);
       await completar('vieja1234', 'nueva1234', 'nueva1234');
       expect(await screen.findByText('Contraseña actualizada. Ingresá de nuevo.')).toBeTruthy();
-      expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'nueva1234');
+      expect(mockIngresar).toHaveBeenCalledWith('ana@mail.com', 'nueva1234', mockUsuario.rol);
       expect(mockCerrar).toHaveBeenCalledTimes(1);
     });
 

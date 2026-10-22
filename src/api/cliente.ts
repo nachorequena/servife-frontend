@@ -15,7 +15,7 @@ import type { TokensDeSesion } from './identidad';
  * - Ante un 401 intenta renovar el token una sola vez y reintenta; si falla, limpia la sesión
  *   y avisa para mandar a login (.ai/07-security.md).
  * - Ante un 403 CUENTA_SUSPENDIDA (el gestor suspendió la cuenta con la sesión abierta, E4) también
- *   limpia la sesión, y pasa el mensaje para mostrarlo en Bienvenida.
+ *   limpia la sesión, y pasa el mensaje para mostrarlo en Ingresar.
  * - Cada request tiene un tope de 10 s (configurable con tiempoMaximoMs); al vencer falla como un error de red (no ApiError) y no toca los tokens.
  * - Cualquier respuesta no 2xx se lanza como ApiError con el formato único de error.
  */

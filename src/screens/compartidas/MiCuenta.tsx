@@ -108,9 +108,10 @@ export function MiCuenta() {
     setCambiando(true);
     try {
       await cambiarContrasenia({ contraseniaActual: actual, contraseniaNueva: nueva });
-      // A7 revoca todos los refresh tokens (también el de este dispositivo): se pide un par nuevo.
+      // A7 revoca todos los refresh tokens (también el de este dispositivo): se pide un par nuevo, con el
+      // rol de esta sesión (si el email tiene cuenta de cliente y de prestador, sin rol sería 409, D43).
       try {
-        await ingresar(email, nueva);
+        await ingresar(email, nueva, sesion?.rol);
         setAviso('Contraseña actualizada.');
       } catch {
         setAviso('Contraseña actualizada. Ingresá de nuevo.');
