@@ -97,6 +97,11 @@ export function PerfilPrestadorScreen() {
             onPress={() => navigation.navigate('TrabajosRealizados', { uuidPrestador })}
           />
           <Button
+            etiqueta="Ver valoraciones"
+            variante="secundario"
+            onPress={() => navigation.navigate('ValoracionesDelPrestador', { uuidPrestador })}
+          />
+          <Button
             etiqueta="Solicitar servicio"
             onPress={() => navigation.navigate('FormularioSolicitud', { uuidPrestador })}
           />
