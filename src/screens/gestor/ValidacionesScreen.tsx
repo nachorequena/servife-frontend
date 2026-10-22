@@ -1,94 +1,44 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../api/errores';
-import { listarValidacionesPendientes, validarPrestador, type PrestadorPendiente } from '../../api/gestion';
-import { Button, Card, EstadoVacio, Input } from '../../components';
+import { listarValidacionesPendientes } from '../../api/gestion';
+import { Button, Card, EstadoVacio } from '../../components';
 import { useListaPaginada } from '../../hooks/useListaPaginada';
+import type { GestorStackParams } from '../../navigation/tipos';
 import { colores, espaciado, tipografia } from '../../theme';
 import { formatearFecha } from '../../utils/formato';
 import { mensajeDe } from '../../utils/errores';
-
-/** Límite del motivo en E6 (DecisionDeValidacionRequest). */
-const MAXIMO_MOTIVO = 255;
-
-type Decision = 'APROBAR' | 'RECHAZAR';
+import { AccionesDeValidacion, type DecisionDeValidacion } from './AccionesDeValidacion';
 
 /**
  * Validaciones pendientes · CU14 · E5 y E6. Sin maqueta propia: lista paginada con acentos lilas del
- * gestor. Aprobar y rechazar piden confirmación; el rechazo admite un motivo que le llega al prestador.
+ * gestor. Cada tarjeta abre el expediente (E8) y permite aprobar o rechazar con confirmación
+ * (AccionesDeValidacion); el rechazo admite un motivo que le llega al prestador.
  */
 export function ValidacionesScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<GestorStackParams>>();
   const { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar, quitar } =
     useListaPaginada(listarValidacionesPendientes);
-  const [confirmando, setConfirmando] = useState<{ uuid: string; decision: Decision } | null>(null);
-  const [motivo, setMotivo] = useState('');
-  const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<string>();
   const [errorDeDecision, setErrorDeDecision] = useState<string>();
 
-  function abrir(uuid: string, decision: Decision) {
-    setMotivo('');
-    setAviso(undefined);
+  function decidido(uuid: string, decision: DecisionDeValidacion) {
     setErrorDeDecision(undefined);
-    setConfirmando({ uuid, decision });
+    setAviso(decision === 'APROBAR' ? 'Prestador aprobado.' : 'Prestador rechazado.');
+    // Se saca de la lista ya y se vuelve a pedir la primera página, así entra el siguiente pendiente.
+    quitar(uuid);
+    refrescar();
   }
 
-  async function resolver(uuid: string, decision: Decision) {
+  function fallo(e: unknown) {
     setAviso(undefined);
-    setErrorDeDecision(undefined);
-    setEnviando(true);
-    try {
-      const texto = motivo.trim();
-      await validarPrestador(uuid, decision === 'RECHAZAR' && texto !== '' ? { decision, motivo: texto } : { decision });
-      setConfirmando(null);
-      setAviso(decision === 'APROBAR' ? 'Prestador aprobado.' : 'Prestador rechazado.');
-      // Se saca de la lista ya y se vuelve a pedir la primera página, así entra el siguiente pendiente.
-      quitar(uuid);
+    setErrorDeDecision(mensajeDe(e));
+    if (e instanceof ApiError && e.codigo === 'VALIDACION_YA_RESUELTA') {
       refrescar();
-    } catch (e) {
-      setErrorDeDecision(mensajeDe(e));
-      if (e instanceof ApiError && e.codigo === 'VALIDACION_YA_RESUELTA') {
-        setConfirmando(null);
-        refrescar();
-      }
-    } finally {
-      setEnviando(false);
     }
-  }
-
-  function acciones(p: PrestadorPendiente) {
-    if (confirmando?.uuid !== p.uuid) {
-      return (
-        <View style={estilos.acciones}>
-          <Button etiqueta="Aprobar" onPress={() => abrir(p.uuid, 'APROBAR')} deshabilitado={enviando} />
-          <Button etiqueta="Rechazar" variante="secundario" onPress={() => abrir(p.uuid, 'RECHAZAR')} deshabilitado={enviando} />
-        </View>
-      );
-    }
-    const aprobar = confirmando.decision === 'APROBAR';
-    return (
-      <View style={estilos.acciones}>
-        {aprobar ? (
-          <Text style={estilos.dato}>¿Aprobar a {p.nombreApellido}? Va a aparecer en las búsquedas.</Text>
-        ) : (
-          <Input
-            etiqueta="Motivo (opcional)"
-            value={motivo}
-            onChangeText={setMotivo}
-            maxLength={MAXIMO_MOTIVO}
-            multiline
-          />
-        )}
-        <Button
-          etiqueta={aprobar ? 'Confirmar aprobación' : 'Confirmar rechazo'}
-          variante={aprobar ? 'primario' : 'secundario'}
-          onPress={() => resolver(p.uuid, confirmando.decision)}
-          deshabilitado={enviando}
-        />
-        <Button etiqueta="Cancelar" variante="terciario" onPress={() => setConfirmando(null)} deshabilitado={enviando} />
-      </View>
-    );
   }
 
   return (
@@ -115,7 +65,19 @@ export function ValidacionesScreen() {
                 <Text style={estilos.dato}>{p.email}</Text>
                 <Text style={estilos.dato}>{p.tipoServicio.nombre}</Text>
                 <Text style={estilos.dato}>Postulado el {formatearFecha(p.postuladoEn)}</Text>
-                {acciones(p)}
+                <View style={estilos.expediente}>
+                  <Button
+                    etiqueta="Ver expediente"
+                    variante="terciario"
+                    onPress={() => navigation.navigate('Expediente', { uuidPrestador: p.uuid, nombreApellido: p.nombreApellido })}
+                  />
+                </View>
+                <AccionesDeValidacion
+                  uuidPrestador={p.uuid}
+                  nombreApellido={p.nombreApellido}
+                  alDecidir={(decision) => decidido(p.uuid, decision)}
+                  alFallar={fallo}
+                />
               </View>
             </Card>
           )}
@@ -155,5 +117,5 @@ const estilos = StyleSheet.create({
   cuerpo: { flex: 1 },
   nombre: { ...tipografia.seccion, color: colores.tinta },
   dato: { ...tipografia.cuerpo, color: colores.tintaSecundaria },
-  acciones: { marginTop: espaciado.m, gap: espaciado.s },
+  expediente: { marginTop: espaciado.m },
 });

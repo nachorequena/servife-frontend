@@ -52,6 +52,8 @@ export type PrestadorStackParams = {
   DetalleSolicitud: { uuidSolicitud: string; accion?: AccionSobreSolicitud };
   Chat: { uuidChat: string };
   Avisos: undefined;
+  /** Carga de documentos para la validación (E7, D01). */
+  Documentos: undefined;
 };
 
 /**
@@ -71,5 +73,7 @@ export type GestorStackParams = {
   FormularioTipoServicio: { uuid?: string };
   /** Sin usuario: alta de un gestor (E13). Con usuario: edición (E14) con sus datos actuales. */
   FormularioUsuario: { usuario?: UsuarioAdmin };
+  /** Expediente de validación de un prestador (E8, D01). */
+  Expediente: { uuidPrestador: string; nombreApellido: string };
   Avisos: undefined;
 };

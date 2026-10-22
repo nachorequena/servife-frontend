@@ -1,5 +1,7 @@
+import { descargarConSesion, parteDeArchivo, TIEMPO_MAXIMO_DE_SUBIDA_MS } from './archivos';
+import { carpetaDeDocumentos } from './cacheImagenes';
 import type { EstadoValidacion, TipoServicio } from './catalogo';
-import { pedir } from './cliente';
+import { pedir, URL_BASE } from './cliente';
 import type { Pagina, ParametrosDePagina } from './paginacion';
 
 /**
@@ -101,13 +103,56 @@ export const validarPrestador = (uuidPrestador: string, cuerpo: DecisionDeValida
     { metodo: 'PATCH', cuerpo },
   );
 
-/** E8 · GET /admin/prestadores/{uuid}/documentos · CU14 · Gestor. Nunca por URL pública. */
-export const obtenerDocumentosDePrestador = (uuidPrestador: string) =>
-  pedir(`/admin/prestadores/${uuidPrestador}/documentos`);
+export type TipoDeDocumento = 'DNI_FRENTE' | 'DNI_DORSO' | 'CERTIFICACION';
 
-/** E7 · POST /prestadores/me/documentos · CU14 · Prestador. DNI y certificaciones (D01). */
-export const subirDocumento = (formulario: FormData) =>
-  pedir('/prestadores/me/documentos', { metodo: 'POST', cuerpo: formulario });
+/** Un documento del expediente (E7, E7b, E8): solo metadatos; los bytes los ve el gestor con descargarDocumento. */
+export interface Documento {
+  uuid: string;
+  tipo: TipoDeDocumento;
+  estado: EstadoValidacion;
+  creadoEn: string;
+}
+
+/** Expediente de validación (E7b, E8). declaracionJuradaEn null: todavía no la aceptó. */
+export interface Expediente {
+  declaracionJuradaEn: string | null;
+  documentos: Documento[];
+}
+
+/**
+ * E7 · POST /prestadores/me/documentos · CU14 · Prestador (D01). Multipart con tipo, archivo (JPEG, PNG o WEBP,
+ * hasta 5 MB) y declaracionJurada=true, que la pantalla exige tildar. Solo mientras está PENDIENTE (409
+ * EXPEDIENTE_CERRADO); un DNI nuevo reemplaza al anterior; hasta 5 certificaciones (409 LIMITE_DE_CERTIFICACIONES).
+ */
+export function subirDocumento(uri: string, mime: string, tipo: TipoDeDocumento, nombre?: string) {
+  const formulario = new FormData();
+  formulario.append('tipo', tipo);
+  formulario.append('declaracionJurada', 'true');
+  formulario.append('archivo', parteDeArchivo(uri, mime, nombre));
+  return pedir<Documento>('/prestadores/me/documentos', {
+    metodo: 'POST',
+    cuerpo: formulario,
+    tiempoMaximoMs: TIEMPO_MAXIMO_DE_SUBIDA_MS,
+  });
+}
+
+/** E7b · GET /prestadores/me/documentos · CU14 · Prestador. Lo que ya cargó, sin bytes. */
+export const obtenerMiExpediente = () => pedir<Expediente>('/prestadores/me/documentos');
+
+/** E8 · GET /admin/prestadores/{uuid}/documentos · CU14 · Gestor. */
+export const obtenerExpediente = (uuidPrestador: string) =>
+  pedir<Expediente>(`/admin/prestadores/${uuidPrestador}/documentos`);
+
+/**
+ * E8b · GET /admin/prestadores/{uuid}/documentos/{uuidDocumento} · CU14 · Gestor. Lo baja con la sesión a una
+ * carpeta temporal (no a la caché de imágenes) y devuelve el uri local; ExpedienteScreen la vacía al salir.
+ */
+export const descargarDocumento = (uuidPrestador: string, uuidDocumento: string) =>
+  descargarConSesion(
+    `${URL_BASE}/admin/prestadores/${uuidPrestador}/documentos/${uuidDocumento}`,
+    carpetaDeDocumentos(),
+    uuidDocumento,
+  );
 
 /** Respuesta de E9: serviciosActivos son las solicitudes ACEPTADA o EN_CURSO; solicitudesPendientes, las que esperan respuesta. */
 export interface Metricas {

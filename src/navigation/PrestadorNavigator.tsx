@@ -9,6 +9,7 @@ import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
 import { DetalleTrabajoScreen } from '../screens/prestador/DetalleTrabajoScreen';
 import { NuevoTrabajoScreen } from '../screens/prestador/NuevoTrabajoScreen';
+import { DocumentosScreen } from '../screens/prestador/DocumentosScreen';
 import { PerfilPropioScreen } from '../screens/prestador/PerfilPropioScreen';
 import { SolicitudesScreen } from '../screens/prestador/SolicitudesScreen';
 import { colores } from '../theme';
@@ -43,6 +44,7 @@ export function PrestadorNavigator() {
       <Stack.Screen name="DetalleSolicitud" component={DetalleSolicitudDeRuta} options={{ title: 'Solicitud' }} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
+      <Stack.Screen name="Documentos" component={DocumentosScreen} options={{ title: 'Documentos' }} />
     </Stack.Navigator>
   );
 }
