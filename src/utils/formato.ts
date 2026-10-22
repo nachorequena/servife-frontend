@@ -76,6 +76,14 @@ export function hoyEnArgentina(): string {
   return new Date(ahora.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+/** "AAAA-MM-DD" que además es una fecha real del calendario (descarta 2026-02-31). */
+export function esFechaReal(fecha: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return false;
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  const f = new Date(Date.UTC(anio, mes - 1, dia));
+  return f.getUTCFullYear() === anio && f.getUTCMonth() === mes - 1 && f.getUTCDate() === dia;
+}
+
 /** "2026-09-18" → 5. 1 = lunes … 7 = domingo; se calcula con Date.UTC para no depender de la zona del dispositivo. */
 export function diaDeSemana(fecha: string): number {
   const [anio, mes, dia] = fecha.split('-').map(Number);
