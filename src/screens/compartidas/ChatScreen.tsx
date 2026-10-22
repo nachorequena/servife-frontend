@@ -40,6 +40,10 @@ export function ChatScreen() {
   const [errorDeEnvio, setErrorDeEnvio] = useState<string | undefined>();
   const lista = useRef<FlatList<Mensaje>>(null);
   const montado = useRef(true);
+  // KeyboardAvoidingView mide su posición contra el padre, sin el encabezado de la pila: subía de menos y en
+  // Android el teclado tapaba el campo. Se le pasa dónde empieza la pantalla en la ventana.
+  const pantalla = useRef<View>(null);
+  const [desdeArriba, setDesdeArriba] = useState(0);
 
   useEffect(
     () => () => {
@@ -100,44 +104,56 @@ export function ChatScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={estilos.pantalla} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      {fallo && <Text style={estilos.aviso}>No pudimos actualizar el chat. Reintentamos en unos segundos.</Text>}
-      <FlatList
-        ref={lista}
-        testID="lista-mensajes"
-        data={mensajes}
-        keyExtractor={(m) => m.uuid}
-        renderItem={({ item }) => <Burbuja mensaje={item} />}
-        contentContainerStyle={estilos.mensajes}
-        onContentSizeChange={() => lista.current?.scrollToEnd({ animated: false })}
-        ListEmptyComponent={
-          <EstadoVacio mensaje={chat.sePuedeEscribir ? 'Todavía no hay mensajes. Escribí el primero.' : 'No hay mensajes.'} />
-        }
-      />
-      {chat.sePuedeEscribir ? (
-        <View style={estilos.redactor}>
-          {errorDeEnvio !== undefined && <Text style={estilos.textoError}>{errorDeEnvio}</Text>}
-          <View style={estilos.fila}>
-            <TextInput
-              style={estilos.campo}
-              value={texto}
-              onChangeText={setTexto}
-              placeholder="Escribí un mensaje"
-              placeholderTextColor={colores.tintaSecundaria}
-              maxLength={LARGO_MAXIMO_MENSAJE}
-              multiline
-              accessibilityLabel="Mensaje"
-            />
-            <Button etiqueta="Enviar" variante="secundario" onPress={() => void enviar()} deshabilitado={enviando || texto.trim() === ''} />
+    <View
+      ref={pantalla}
+      style={estilos.pantalla}
+      onLayout={() => pantalla.current?.measureInWindow((_x, y) => setDesdeArriba(y))}
+    >
+      <KeyboardAvoidingView
+        style={estilos.pantalla}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={desdeArriba}
+      >
+        {fallo && <Text style={estilos.aviso}>No pudimos actualizar el chat. Reintentamos en unos segundos.</Text>}
+        <FlatList
+          ref={lista}
+          testID="lista-mensajes"
+          data={mensajes}
+          keyExtractor={(m) => m.uuid}
+          renderItem={({ item }) => <Burbuja mensaje={item} />}
+          contentContainerStyle={estilos.mensajes}
+          onContentSizeChange={() => lista.current?.scrollToEnd({ animated: false })}
+          // Al abrirse el teclado la lista se achica: se vuelve al último mensaje para que siga a la vista.
+          onLayout={() => lista.current?.scrollToEnd({ animated: false })}
+          ListEmptyComponent={
+            <EstadoVacio mensaje={chat.sePuedeEscribir ? 'Todavía no hay mensajes. Escribí el primero.' : 'No hay mensajes.'} />
+          }
+        />
+        {chat.sePuedeEscribir ? (
+          <View style={estilos.redactor}>
+            {errorDeEnvio !== undefined && <Text style={estilos.textoError}>{errorDeEnvio}</Text>}
+            <View style={estilos.fila}>
+              <TextInput
+                style={estilos.campo}
+                value={texto}
+                onChangeText={setTexto}
+                placeholder="Escribí un mensaje"
+                placeholderTextColor={colores.tintaSecundaria}
+                maxLength={LARGO_MAXIMO_MENSAJE}
+                multiline
+                accessibilityLabel="Mensaje"
+              />
+              <Button etiqueta="Enviar" variante="secundario" onPress={() => void enviar()} deshabilitado={enviando || texto.trim() === ''} />
+            </View>
           </View>
-        </View>
-      ) : (
-        <View style={estilos.redactor}>
-          {errorDeEnvio !== undefined && <Text style={estilos.textoError}>{errorDeEnvio}</Text>}
-          <Text style={estilos.cerrado}>El chat está cerrado: podés ver los mensajes, pero ya no escribir.</Text>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+        ) : (
+          <View style={estilos.redactor}>
+            {errorDeEnvio !== undefined && <Text style={estilos.textoError}>{errorDeEnvio}</Text>}
+            <Text style={estilos.cerrado}>El chat está cerrado: podés ver los mensajes, pero ya no escribir.</Text>
+          </View>
+        )}
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
