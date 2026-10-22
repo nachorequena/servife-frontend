@@ -1,13 +1,19 @@
 // Componentes compartidos. Antes de crear uno nuevo, buscá acá (servife-ia/.ai/09-ux-ui.md).
 export { AdjuntosDeImagenes } from './AdjuntosDeImagenes';
+export { ProveedorDeAvisosFlotantes, useAvisoFlotante, type TipoDeAviso } from './AvisoFlotante';
 export { Avatar } from './Avatar';
+export { BotonFlotante } from './BotonFlotante';
 export { Button } from './Button';
 export { Campanita } from './Campanita';
 export { Card } from './Card';
 export { Chip } from './Chip';
 export { CerrarSesion } from './CerrarSesion';
+export { Dialogo } from './Dialogo';
 export { EstadoVacio } from './EstadoVacio';
+export { Esqueleto } from './Esqueleto';
+export { Etiqueta, type TonoDeEtiqueta } from './Etiqueta';
 export { EtiquetaDeEstado } from './EtiquetaDeEstado';
+export { HojaInferior } from './HojaInferior';
 export { ImagenProtegida } from './ImagenProtegida';
 export { Input } from './Input';
 export { Logo } from './Logo';
