@@ -75,7 +75,7 @@ export type GestorStackParams = {
   FormularioTipoServicio: { uuid?: string };
   /** Sin usuario: alta de un gestor (E13). Con usuario: edición (E14) con sus datos actuales. */
   FormularioUsuario: { usuario?: UsuarioAdmin };
-  /** Expediente de validación de un prestador (E8, D01). */
-  Expediente: { uuidPrestador: string; nombreApellido: string };
+  /** Expediente de validación de un prestador (E8, D01). rubro y requiereMatricula vienen de E5, para avisar lo que falta. */
+  Expediente: { uuidPrestador: string; nombreApellido: string; rubro?: string; requiereMatricula?: boolean };
   Avisos: undefined;
 };

@@ -1,12 +1,16 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { listarValidacionesPendientes, obtenerMetricas, type Metricas, type PrestadorPendiente } from '../../api/gestion';
-import { Button, Card, EstadoVacio } from '../../components';
+import { Avatar, Button, Card, EstadoVacio, Esqueleto, Etiqueta } from '../../components';
+import type { NombreDeIcono } from '../../navigation/iconos';
 import type { GestorTabsParams } from '../../navigation/tipos';
-import { colores, espaciado, tipografia } from '../../theme';
+import { useSesion } from '../../store/sesion';
+import { bordes, colores, espaciado, radios, tamanios, tipografia } from '../../theme';
+import { formatearFechaLarga, haceCuanto } from '../../utils/formato';
 
 /** Cuántas validaciones pendientes muestra el dashboard; el resto está en la pestaña Validaciones. */
 const VALIDACIONES_A_MOSTRAR = 3;
@@ -17,12 +21,15 @@ interface Datos {
 }
 
 /**
- * Dashboard del gestor · CU12, CU14 · E9 y E5. Como el prototipo: arriba los servicios activos (más las
- * solicitudes esperando respuesta) y abajo las validaciones pendientes más viejas, que llevan a
- * Validaciones. Sin "Incidencias recientes" (D05). Se recarga al enfocar y con pull-to-refresh.
+ * Dashboard del gestor · CU12, CU14 · E9 y E5. Saludo con el nombre y la fecha; arriba los contadores en
+ * tarjetas con ícono (servicios activos, solicitudes sin responder y validaciones pendientes, que lleva a
+ * Validaciones) y abajo las validaciones más viejas. Sin "Incidencias recientes" (D05). Esqueletos mientras
+ * carga; se recarga al enfocar y con pull-to-refresh.
  */
 export function DashboardScreen() {
   const navigation = useNavigation<BottomTabNavigationProp<GestorTabsParams>>();
+  const { sesion } = useSesion();
+  const nombre = sesion?.usuario.nombreApellido.split(' ')[0] ?? '';
   const [datos, setDatos] = useState<Datos | null>(null);
   const [error, setError] = useState(false);
   const [errorAlActualizar, setErrorAlActualizar] = useState(false);
@@ -68,68 +75,140 @@ export function DashboardScreen() {
   if (error) {
     return (
       <View style={estilos.centro}>
-        <Text style={estilos.texto}>No pudimos cargar el dashboard.</Text>
-        <Button etiqueta="Reintentar" onPress={() => void cargar(false)} />
+        <EstadoVacio
+          icono="cloud-offline-outline"
+          mensaje="No pudimos cargar el dashboard."
+          accion={{ etiqueta: 'Reintentar', onPress: () => void cargar(false) }}
+        />
       </View>
     );
   }
-  if (datos === null) {
-    return <ActivityIndicator color={colores.lila} size="large" style={estilos.cargando} />;
-  }
 
-  const { metricas, pendientes } = datos;
   return (
     <ScrollView
       testID="dashboard"
+      style={estilos.pantalla}
       contentContainerStyle={estilos.contenedor}
       refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} />}
     >
-      {errorAlActualizar && <Text style={estilos.texto}>No pudimos actualizar el dashboard.</Text>}
-      <View style={estilos.contadores}>
-        <View style={estilos.contador}>
-          <Text style={estilos.numero}>{metricas.serviciosActivos}</Text>
-          <Text style={estilos.etiqueta}>Servicios activos</Text>
-        </View>
-        <View style={estilos.contador}>
-          <Text style={estilos.numero}>{metricas.solicitudesPendientes}</Text>
-          <Text style={estilos.etiqueta}>Solicitudes sin responder</Text>
-        </View>
+      <View>
+        <Text style={estilos.saludo}>{nombre !== '' ? `Hola, ${nombre}` : 'Hola'}</Text>
+        <Text style={estilos.fecha}>{formatearFechaLarga()}</Text>
       </View>
+      {errorAlActualizar && <Text style={estilos.alerta}>No pudimos actualizar el dashboard. Deslizá para reintentar.</Text>}
 
-      <Text style={estilos.seccion}>Validaciones pendientes ({metricas.validacionesPendientes})</Text>
-      {pendientes.length === 0 ? (
-        <EstadoVacio mensaje="No hay prestadores pendientes." />
+      {datos === null ? (
+        <View testID="cargando" style={estilos.contadores}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={estilos.esqueleto}>
+              <Esqueleto alto={tamanios.avatarGrande - espaciado.xl} radio={radios.tarjeta} />
+            </View>
+          ))}
+        </View>
       ) : (
-        <View style={estilos.lista}>
-          {pendientes.map((p) => (
-            <Card key={p.uuid} onPress={() => navigation.navigate('Validaciones')}>
-              <View style={estilos.cuerpo}>
+        <View style={estilos.contadores}>
+          <Contador icono="construct-outline" numero={datos.metricas.serviciosActivos} etiqueta="Servicios activos" />
+          <Contador icono="time-outline" numero={datos.metricas.solicitudesPendientes} etiqueta="Sin responder" />
+          <Contador
+            icono="shield-checkmark-outline"
+            numero={datos.metricas.validacionesPendientes}
+            etiqueta="Por validar"
+            destacado={datos.metricas.validacionesPendientes > 0}
+            onPress={() => navigation.navigate('Validaciones')}
+          />
+        </View>
+      )}
+
+      <View style={estilos.filaSeccion}>
+        <Text style={estilos.seccion}>Validaciones pendientes</Text>
+        {datos !== null && datos.metricas.validacionesPendientes > datos.pendientes.length && (
+          <Button etiqueta="Ver todas" variante="texto" tamanio="chico" ancho="contenido" onPress={() => navigation.navigate('Validaciones')} />
+        )}
+      </View>
+      {datos === null ? (
+        <Esqueleto alto={tamanios.avatar + espaciado.l} radio={radios.tarjeta} />
+      ) : datos.pendientes.length === 0 ? (
+        <EstadoVacio icono="checkmark-done-outline" mensaje="No hay prestadores pendientes." />
+      ) : (
+        <View>
+          {datos.pendientes.map((p) => (
+            <Card key={p.uuid} variante="blanca" onPress={() => navigation.navigate('Validaciones')} accessibilityLabel={p.nombreApellido}>
+              <Avatar nombre={p.nombreApellido} tamanio={tamanios.avatarChico} />
+              <View style={estilos.datos}>
                 <Text style={estilos.nombre}>{p.nombreApellido}</Text>
-                <Text style={estilos.dato}>{p.tipoServicio.nombre}</Text>
+                <Text style={estilos.dato}>Se postuló {haceCuanto(p.postuladoEn)}</Text>
               </View>
+              <Etiqueta texto={p.tipoServicio.nombre} tono="lila" />
             </Card>
           ))}
-          {metricas.validacionesPendientes > pendientes.length && (
-            <Button etiqueta="Ver todas" variante="terciario" onPress={() => navigation.navigate('Validaciones')} />
-          )}
         </View>
       )}
     </ScrollView>
   );
 }
 
+interface PropsDeContador {
+  icono: NombreDeIcono;
+  numero: number;
+  etiqueta: string;
+  destacado?: boolean;
+  onPress?: () => void;
+}
+
+/** Tarjeta de un contador: ícono, número grande y texto chico. Si se toca, lleva a la lista correspondiente. */
+function Contador({ icono, numero, etiqueta, destacado = false, onPress }: PropsDeContador) {
+  const contenido = (
+    <>
+      <View style={[estilos.icono, destacado && estilos.iconoDestacado]}>
+        <Ionicons name={icono} size={tamanios.icono} color={destacado ? colores.advertencia : colores.lilaTexto} />
+      </View>
+      <Text style={estilos.numero}>{numero}</Text>
+      <Text style={estilos.etiqueta}>{etiqueta}</Text>
+    </>
+  );
+  return onPress ? (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${etiqueta}: ${numero}`} onPress={onPress} style={estilos.contador}>
+      {contenido}
+    </Pressable>
+  ) : (
+    <View style={estilos.contador} accessible accessibilityLabel={`${etiqueta}: ${numero}`}>
+      {contenido}
+    </View>
+  );
+}
+
 const estilos = StyleSheet.create({
+  pantalla: { flex: 1, backgroundColor: colores.fondo },
   contenedor: { padding: espaciado.l, gap: espaciado.m },
-  centro: { flex: 1, justifyContent: 'center', padding: espaciado.l, gap: espaciado.m },
-  cargando: { marginTop: espaciado.xl },
-  contadores: { flexDirection: 'row', gap: espaciado.m },
-  contador: { flex: 1, alignItems: 'center', gap: espaciado.xs },
-  numero: { ...tipografia.titulo, color: colores.lila },
-  etiqueta: { ...tipografia.seccion, color: colores.tinta, textAlign: 'center' },
-  seccion: { ...tipografia.seccion, color: colores.tinta, marginTop: espaciado.m },
-  lista: { gap: espaciado.m },
-  cuerpo: { flex: 1 },
+  centro: { flex: 1, justifyContent: 'center', backgroundColor: colores.fondo },
+  saludo: { ...tipografia.titulo, color: colores.tinta },
+  fecha: { ...tipografia.cuerpo, color: colores.tintaSecundaria },
+  alerta: { ...tipografia.cuerpo, color: colores.rojo },
+  contadores: { flexDirection: 'row', gap: espaciado.s },
+  esqueleto: { flex: 1 },
+  contador: {
+    flex: 1,
+    backgroundColor: colores.blanco,
+    borderRadius: radios.tarjeta,
+    borderWidth: bordes.fino,
+    borderColor: colores.bordeSuave,
+    padding: espaciado.m,
+    gap: espaciado.xs,
+  },
+  icono: {
+    width: tamanios.avatarChico,
+    height: tamanios.avatarChico,
+    borderRadius: radios.pill,
+    backgroundColor: colores.lilaClaro,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconoDestacado: { backgroundColor: colores.advertenciaClara },
+  numero: { ...tipografia.titulo, color: colores.tinta },
+  etiqueta: { ...tipografia.etiqueta, color: colores.tintaSecundaria },
+  filaSeccion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: espaciado.s },
+  seccion: { ...tipografia.seccion, color: colores.tinta },
+  datos: { flex: 1 },
   nombre: { ...tipografia.cuerpo, fontWeight: '700', color: colores.tinta },
   dato: { ...tipografia.cuerpo, color: colores.tintaSecundaria },
-  texto: { ...tipografia.cuerpo, color: colores.tintaSecundaria, textAlign: 'center' },
 });
