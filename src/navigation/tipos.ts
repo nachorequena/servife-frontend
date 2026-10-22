@@ -30,10 +30,9 @@ export type ClienteStackParams = {
   FormularioSolicitud: { uuidPrestador: string };
   DetalleSolicitud: { uuidSolicitud: string };
   Valoracion: { uuidSolicitud: string };
-  TrabajosRealizados: { uuidPrestador: string };
   ValoracionesDelPrestador: { uuidPrestador: string };
-  /** El trabajo viaja entero: no hay un GET de una sola publicación. */
-  DetalleTrabajo: { publicacion: Publicacion };
+  /** El trabajo viaja entero: no hay un GET de una sola publicación. nombrePrestador: el encabezado, como en Instagram. */
+  DetalleTrabajo: { publicacion: Publicacion; nombrePrestador?: string };
   Chat: { uuidChat: string };
   Avisos: undefined;
 };
