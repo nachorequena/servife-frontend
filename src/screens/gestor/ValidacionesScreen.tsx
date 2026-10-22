@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../api/errores';
-import { listarValidacionesPendientes } from '../../api/gestion';
+import { listarValidacionesPendientes, type PrestadorPendiente } from '../../api/gestion';
 import { Button, Card, EstadoVacio } from '../../components';
 import { useListaPaginada } from '../../hooks/useListaPaginada';
 import type { GestorStackParams } from '../../navigation/tipos';
@@ -12,6 +12,8 @@ import { colores, espaciado, tipografia } from '../../theme';
 import { formatearFecha } from '../../utils/formato';
 import { mensajeDe } from '../../utils/errores';
 import { AccionesDeValidacion, type DecisionDeValidacion } from './AccionesDeValidacion';
+
+const claveDe = (p: PrestadorPendiente) => p.uuid;
 
 /**
  * Validaciones pendientes · CU14 · E5 y E6. Sin maqueta propia: lista paginada con acentos lilas del
@@ -21,7 +23,7 @@ import { AccionesDeValidacion, type DecisionDeValidacion } from './AccionesDeVal
 export function ValidacionesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<GestorStackParams>>();
   const { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar, quitar } =
-    useListaPaginada(listarValidacionesPendientes);
+    useListaPaginada(listarValidacionesPendientes, claveDe);
   const [aviso, setAviso] = useState<string>();
   const [errorDeDecision, setErrorDeDecision] = useState<string>();
 

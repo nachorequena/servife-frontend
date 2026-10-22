@@ -2,6 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { UsuarioAdmin } from '../api/gestion';
 import type { RolRegistrable } from '../api/identidad';
+import type { Publicacion } from '../api/reputacion';
 import type { AccionSobreSolicitud } from '../api/solicitudes';
 import type { Rol } from '../store/sesion';
 
@@ -33,6 +34,8 @@ export type ClienteStackParams = {
   DetalleSolicitud: { uuidSolicitud: string };
   Valoracion: { uuidSolicitud: string };
   TrabajosRealizados: { uuidPrestador: string };
+  /** El trabajo viaja entero: no hay un GET de una sola publicación. */
+  DetalleTrabajo: { publicacion: Publicacion };
   Chat: { uuidChat: string };
   Avisos: undefined;
 };
@@ -46,8 +49,10 @@ export type PrestadorTabsParams = {
 
 export type PrestadorStackParams = {
   Tabs: undefined;
-  NuevoTrabajo: undefined;
-  DetalleTrabajo: { uuidPublicacion: string };
+  /** Con publicacion, edita ese trabajo (D5); sin ella, publica uno nuevo (D4). */
+  NuevoTrabajo: { publicacion?: Publicacion } | undefined;
+  /** El trabajo viaja entero: no hay un GET de una sola publicación. */
+  DetalleTrabajo: { publicacion: Publicacion };
   /** `accion`: deja abierta esa acción al cargar (ACEPTAR desde la tarjeta, con el campo de precio). */
   DetalleSolicitud: { uuidSolicitud: string; accion?: AccionSobreSolicitud };
   Chat: { uuidChat: string };

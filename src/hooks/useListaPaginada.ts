@@ -6,13 +6,17 @@ import type { Pagina, ParametrosDePagina } from '../api/paginacion';
 const TAMANIO_PAGINA = 20;
 
 /**
- * Lista paginada de cualquier endpoint que devuelve Pagina<T> con uuid: carga, paginado, refresco
- * (pull-to-refresh y al volver a la pantalla, sin tapar la lista) y errores. Toda consulta nueva anula a
- * la anterior. `cargarPagina` tiene que ser estable (useCallback): cuando cambia, la lista se vuelve a pedir
- * desde la primera página (por ejemplo, al cambiar un filtro).
+ * Lista paginada genérica: carga, paginado sin duplicados, refresco (pull-to-refresh y al volver a la
+ * pantalla, sin tapar la lista) y errores; un refresco que falla conserva la lista. Toda consulta nueva anula
+ * a la anterior. La usan Mensajes, Trabajos realizados, Validaciones, Usuarios y useListaDeSolicitudes; AvisosScreen
+ * todavía tiene su propia copia.
+ *
+ * @param cargarPagina función de api/ que pide una página; tiene que ser estable (definida fuera del componente)
+ * @param clave identifica cada ítem para no repetirlo entre páginas
  */
-export function useListaPaginada<T extends { uuid: string }>(
+export function useListaPaginada<T>(
   cargarPagina: (pagina: ParametrosDePagina) => Promise<Pagina<T>>,
+  clave: (item: T) => string,
 ) {
   const [items, setItems] = useState<T[]>([]);
   const [pagina, setPagina] = useState(0);
@@ -28,6 +32,8 @@ export function useListaPaginada<T extends { uuid: string }>(
   const cargandoMasRef = useRef(false);
   const esRefresco = useRef(false);
   const primerFoco = useRef(true);
+  const claveRef = useRef(clave);
+  claveRef.current = clave;
 
   useEffect(() => {
     const id = ++solicitud.current;
@@ -40,7 +46,6 @@ export function useListaPaginada<T extends { uuid: string }>(
     setErrorAlActualizar(false);
     setRefrescando(refresco);
     setCargando(!refresco);
-    if (!refresco) setItems([]);
     cargarPagina({ page: 0, size: TAMANIO_PAGINA })
       .then((resultado) => {
         if (id !== solicitud.current) return;
@@ -64,7 +69,7 @@ export function useListaPaginada<T extends { uuid: string }>(
       });
   }, [cargarPagina, reintento]);
 
-  // Al volver a la pantalla (p. ej. tras actuar en un detalle) se recarga sin tapar la lista.
+  // Al volver a la pantalla se recarga sin tapar la lista.
   useFocusEffect(
     useCallback(() => {
       if (primerFoco.current) {
@@ -86,8 +91,8 @@ export function useListaPaginada<T extends { uuid: string }>(
       .then((resultado) => {
         if (id !== solicitud.current) return;
         setItems((actuales) => {
-          const existentes = new Set(actuales.map((s) => s.uuid));
-          return [...actuales, ...resultado.contenido.filter((s) => !existentes.has(s.uuid))];
+          const existentes = new Set(actuales.map((i) => claveRef.current(i)));
+          return [...actuales, ...resultado.contenido.filter((i) => !existentes.has(claveRef.current(i)))];
         });
         setPagina(resultado.pagina);
         setTotalPaginas(resultado.totalPaginas);
@@ -109,7 +114,8 @@ export function useListaPaginada<T extends { uuid: string }>(
 
   const reintentar = () => setReintento((n) => n + 1);
 
-  const quitar = (uuid: string) => setItems((actuales) => actuales.filter((s) => s.uuid !== uuid));
+  /** Saca un ítem ya resuelto sin esperar la recarga (por ejemplo, una validación aprobada). */
+  const quitar = (id: string) => setItems((actuales) => actuales.filter((item) => claveRef.current(item) !== id));
 
   return { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar, quitar };
 }

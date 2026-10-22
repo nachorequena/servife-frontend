@@ -40,7 +40,9 @@ export function PrestadorNavigator() {
     <Stack.Navigator screenOptions={opcionesDePila}>
       <Stack.Screen name="Tabs" component={PrestadorTabs} options={{ headerShown: false }} />
       <Stack.Screen name="NuevoTrabajo" component={NuevoTrabajoScreen} options={{ title: 'Nuevo trabajo' }} />
-      <Stack.Screen name="DetalleTrabajo" component={DetalleTrabajoScreen} options={{ title: 'Trabajo' }} />
+      <Stack.Screen name="DetalleTrabajo" options={{ title: 'Trabajo' }}>
+        {() => <DetalleTrabajoScreen soloLectura={false} />}
+      </Stack.Screen>
       <Stack.Screen name="DetalleSolicitud" component={DetalleSolicitudDeRuta} options={{ title: 'Solicitud' }} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />

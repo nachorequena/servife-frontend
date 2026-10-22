@@ -1,4 +1,4 @@
-import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -24,6 +24,8 @@ const ETIQUETA_DE_ACCION: Record<AccionSobreSolicitud, string> = {
   ACEPTAR: 'Aceptar',
   INICIAR: 'Iniciar trabajo',
   FINALIZAR: 'Finalizar trabajo',
+  CONFIRMAR_REALIZADO: 'Se realizó el servicio',
+  NO_SE_PRESENTO: 'El prestador no se presentó',
 };
 
 const ETIQUETA_DE_CONFIRMACION: Record<AccionSobreSolicitud, string> = {
@@ -32,12 +34,18 @@ const ETIQUETA_DE_CONFIRMACION: Record<AccionSobreSolicitud, string> = {
   ACEPTAR: 'Confirmar',
   INICIAR: 'Confirmar',
   FINALIZAR: 'Confirmar',
+  CONFIRMAR_REALIZADO: 'Confirmar',
+  NO_SE_PRESENTO: 'Confirmar',
 };
 
 const PREGUNTA_DE_CONFIRMACION: Partial<Record<AccionSobreSolicitud, string>> = {
   INICIAR: '¿Querés iniciar el trabajo?',
   FINALIZAR: '¿Querés dar el trabajo por finalizado?',
+  CONFIRMAR_REALIZADO: '¿Confirmás que el servicio se realizó? Después vas a poder valorarlo.',
+  NO_SE_PRESENTO: '¿Confirmás que el prestador no se presentó? La solicitud se cancela.',
 };
+
+const ACCIONES_SECUNDARIAS: AccionSobreSolicitud[] = ['CANCELAR', 'RECHAZAR', 'NO_SE_PRESENTO'];
 
 /** Detalle de una solicitud para cliente o prestador, con las acciones que el backend habilita (D10, provisorio). */
 export function DetalleSolicitud({
@@ -49,6 +57,12 @@ export function DetalleSolicitud({
   accionInicial?: AccionSobreSolicitud;
 }) {
   const { sesion } = useSesion();
+  const navigation = useNavigation<{
+    navigate: {
+      (ruta: 'Chat', params: { uuidChat: string }): void;
+      (ruta: 'Valoracion', params: { uuidSolicitud: string }): void;
+    };
+  }>();
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   const [errorDeCarga, setErrorDeCarga] = useState<string | undefined>();
   const [reintento, setReintento] = useState(0);
@@ -193,6 +207,14 @@ export function DetalleSolicitud({
         <Text style={estilos.valor}>{contraparte.nombreApellido}</Text>
         {contraparte.telefono !== null && <Text style={estilos.valor}>{`Teléfono: ${contraparte.telefono}`}</Text>}
       </Seccion>
+      {/* Punto de entrada al chat de la solicitud (porción 4, D33). */}
+      {solicitud.uuidChat !== null && (
+        <Button
+          etiqueta="Abrir chat"
+          variante="terciario"
+          onPress={() => navigation.navigate('Chat', { uuidChat: solicitud.uuidChat as string })}
+        />
+      )}
       <Seccion titulo="Servicio">
         <Text style={estilos.valor}>{solicitud.tipoServicio.nombre}</Text>
       </Seccion>
@@ -235,13 +257,21 @@ export function DetalleSolicitud({
       )}
       {errorDeAccion !== undefined && <Text style={estilos.textoError}>{errorDeAccion}</Text>}
 
+      {/* Punto de entrada al flujo de valoración (porción 3, D07): solo el cliente, con el trabajo finalizado. */}
+      {esCliente && solicitud.estado === 'FINALIZADA' && accion === null && (
+        <Button
+          etiqueta="Valorar el servicio"
+          onPress={() => navigation.navigate('Valoracion', { uuidSolicitud: solicitud.uuid })}
+        />
+      )}
+
       {accion === null ? (
         <View style={estilos.acciones}>
           {solicitud.accionesDisponibles.map((a) => (
             <Button
               key={a}
               etiqueta={ETIQUETA_DE_ACCION[a]}
-              variante={a === 'CANCELAR' || a === 'RECHAZAR' ? 'secundario' : 'primario'}
+              variante={ACCIONES_SECUNDARIAS.includes(a) ? 'secundario' : 'primario'}
               onPress={() => abrir(a)}
             />
           ))}
