@@ -34,6 +34,7 @@ export type ClienteStackParams = {
   DetalleSolicitud: { uuidSolicitud: string };
   Valoracion: { uuidSolicitud: string };
   TrabajosRealizados: { uuidPrestador: string };
+  ValoracionesDelPrestador: { uuidPrestador: string };
   /** El trabajo viaja entero: no hay un GET de una sola publicación. */
   DetalleTrabajo: { publicacion: Publicacion };
   Chat: { uuidChat: string };
