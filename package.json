@@ -38,6 +38,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "emulador": "node scripts/emulador.mjs",
+    "celular": "node scripts/celular.mjs",
     "pantalla": "node scripts/pantalla.mjs"
   },
   "private": true,

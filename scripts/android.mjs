@@ -1,7 +1,7 @@
-// Ubicación del Android SDK y de sus herramientas, compartido por los scripts del emulador.
+// Ubicación del Android SDK y de sus herramientas, compartido por los scripts del emulador y del celular.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -45,4 +45,25 @@ export function emuladoresCorriendo() {
     .split('\n')
     .filter((linea) => /^emulator-\d+\s+device$/.test(linea.trim()))
     .map((linea) => linea.split(/\s+/)[0]);
+}
+
+// La URL de la API sale de la variable de entorno o del .env, igual que en Expo.
+export function urlApi() {
+  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+  if (!existsSync('.env')) {
+    console.warn('⚠ No hay .env: copialo de .env.example (ver README).');
+    return undefined;
+  }
+  const linea = readFileSync('.env', 'utf8')
+    .split(/\r?\n/)
+    .find((l) => l.startsWith('EXPO_PUBLIC_API_URL='));
+  return linea?.slice('EXPO_PUBLIC_API_URL='.length).trim();
+}
+
+export async function avisarSiNoHayBackend(url) {
+  try {
+    await fetch(url, { signal: AbortSignal.timeout(3000) });
+  } catch {
+    console.warn(`⚠ El backend no responde en ${url}. Levantalo en servife-backend: docker compose up -d --build`);
+  }
 }

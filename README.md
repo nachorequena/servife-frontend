@@ -17,6 +17,7 @@ servife-ia, clonado al lado de este: ver ../servife-ia/README.md.
     cp .env.example .env        # EXPO_PUBLIC_API_URL: la IP de tu máquina, no localhost, si probás en el teléfono
 
     npm run emulador            # arranca el emulador si hace falta y abre la app con Expo Go
+    npm run celular             # la app en tu celular por cable USB (sin WiFi) y su pantalla en la PC
     npm start                   # servidor de desarrollo de Expo (escanear el QR con Expo Go)
     npm run pantalla            # pruebas end to end: ver y tocar la pantalla del emulador
     npm test                    # Jest + React Native Testing Library
@@ -59,6 +60,29 @@ npm run pantalla (para recorrer la app sin mouse; lo usan los agentes en las pru
 El login es real. Para entrar: registrate desde la app (Cliente o Prestador) o ingresá con el gestor
 inicial que sale de GESTOR_INICIAL_EMAIL y GESTOR_INICIAL_CONTRASENIA del .env del backend. Para
 recuperar la contraseña, el código de 6 dígitos llega a Mailpit: http://localhost:8025.
+
+## Celular por cable
+
+Para probar o presentar desde un celular Android cuando el emulador anda lento o el WiFi es malo:
+todo viaja por el cable USB y la pantalla del celular se ve en la PC con scrcpy.
+
+Una vez por celular y por PC:
+
+1. En el celular: Ajustes → Acerca del teléfono → tocar 7 veces "Número de compilación". Después,
+   en Opciones de desarrollador, activar "Depuración USB". En Samsung, antes hay que desactivar el
+   "Bloqueador automático" (Ajustes → Seguridad y privacidad), que bloquea la depuración USB.
+2. Expo Go instalado en el celular (Play Store).
+3. scrcpy en la PC: winget install Genymobile.scrcpy (macOS: brew install scrcpy).
+4. Enchufar el celular con un cable de datos y aceptar "¿Permitir depuración USB?" (marcar
+   "Permitir siempre desde esta computadora").
+
+npm run celular:
+- Busca el celular por USB (ignora los emuladores; con varios, SERVIFE_CELULAR=<serie> elige uno).
+- Reenvía por el cable el puerto de Metro (8081) y el del backend (el de EXPO_PUBLIC_API_URL) con
+  adb reverse, y le pasa a la app la API en 127.0.0.1. El .env queda igual.
+- Arranca Expo, abre la app en Expo Go y espeja la pantalla con scrcpy (--sin-espejo para no).
+- Los flags extra van a expo start: npm run celular -- --offline si no hay internet.
+- Ctrl+C cierra Expo y scrcpy. Si desenchufás el cable, volvé a correrlo.
 
 ## Estructura
 
