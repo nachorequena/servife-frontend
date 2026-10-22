@@ -1,11 +1,16 @@
 import {
+  dateAFechaSola,
+  dateAHora,
+  diaAnterior,
   diaDeSemana,
+  fechaADate,
   formatearCentavos,
   formatearFecha,
   formatearFechaHora,
   formatearFechaLarga,
   formatearFechaSola,
   haceCuanto,
+  horaADate,
   hoyEnArgentina,
   nombresDeDias,
   pesosACentavos,
@@ -119,5 +124,36 @@ describe('haceCuanto', () => {
 describe('formatearFechaLarga', () => {
   it('día de la semana, número y mes', () => {
     expect(formatearFechaLarga(new Date('2026-10-22T15:00:00Z'))).toBe('jueves 22 de octubre');
+  });
+});
+
+describe('fecha y hora de los selectores', () => {
+  it('fechaADate y dateAFechaSola devuelven el mismo día', () => {
+    expect(dateAFechaSola(fechaADate('2026-10-09'))).toBe('2026-10-09');
+    expect(dateAFechaSola(fechaADate('2026-01-01'))).toBe('2026-01-01');
+    expect(dateAFechaSola(fechaADate('2026-12-31'))).toBe('2026-12-31');
+  });
+
+  it('dateAFechaSola usa el día local que vio el usuario, con ceros a la izquierda', () => {
+    expect(dateAFechaSola(new Date(2026, 2, 5, 23, 59))).toBe('2026-03-05');
+    expect(dateAFechaSola(new Date(2026, 2, 5, 0, 1))).toBe('2026-03-05');
+  });
+
+  it('dateAHora da HH:mm en 24 h y horaADate lo invierte', () => {
+    expect(dateAHora(new Date(2026, 9, 9, 14, 5))).toBe('14:05');
+    expect(dateAHora(new Date(2026, 9, 9, 0, 0))).toBe('00:00');
+    const d = horaADate('07:30');
+    expect([d.getHours(), d.getMinutes()]).toEqual([7, 30]);
+  });
+});
+
+describe('diaAnterior', () => {
+  it.each([
+    ['2026-10-08', '2026-10-07'],
+    ['2026-10-01', '2026-09-30'],
+    ['2026-01-01', '2025-12-31'],
+    ['2024-03-01', '2024-02-29'],
+  ])('%s → %s', (hoy, ayer) => {
+    expect(diaAnterior(hoy)).toBe(ayer);
   });
 });

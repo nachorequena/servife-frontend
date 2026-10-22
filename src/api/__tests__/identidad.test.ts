@@ -64,6 +64,14 @@ describe('API de identidad', () => {
     expect(init.headers.Authorization).toBeUndefined();
   });
 
+  it('iniciarSesion con rol lo manda en el cuerpo (cuenta de cliente y de prestador, D43)', async () => {
+    fetchMock.mockResolvedValueOnce(respuesta(200, { accessToken: 'a', refreshToken: 'r', rol: 'PRESTADOR' }));
+
+    await iniciarSesion({ email: 'a@b.com', contrasenia: 'abcd1234', rol: 'PRESTADOR' });
+
+    expect(JSON.parse(llamada().init.body)).toEqual({ email: 'a@b.com', contrasenia: 'abcd1234', rol: 'PRESTADOR' });
+  });
+
   it('obtenerSesion: GET /auth/me con Authorization', async () => {
     fetchMock.mockResolvedValueOnce(respuesta(200, { uuid: 'u1' }));
 

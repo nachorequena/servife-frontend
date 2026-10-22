@@ -41,7 +41,8 @@
         {
           "photosPermission": "ServiFe usa tus fotos para adjuntarlas a la solicitud."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

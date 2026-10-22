@@ -6,12 +6,12 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleShe
 import { ApiError } from '../../api/errores';
 import { actualizarPublicacion, crearPublicacion, type DatosDePublicacion } from '../../api/reputacion';
 import { listarMisSolicitudes, type SolicitudEnLista } from '../../api/solicitudes';
-import { AdjuntosDeImagenes, Button, Chip, Input } from '../../components';
+import { AdjuntosDeImagenes, Button, Chip, Input, SelectorDeFecha } from '../../components';
 import { useAdjuntosDeImagenes } from '../../hooks/useAdjuntosDeImagenes';
 import type { PrestadorStackParams } from '../../navigation/tipos';
 import { colores, espaciado, tipografia } from '../../theme';
 import { mensajeDe } from '../../utils/errores';
-import { esFechaReal, formatearFechaSola, hoyEnArgentina } from '../../utils/formato';
+import { formatearFechaSola } from '../../utils/formato';
 
 /** Las 50 terminadas más recientes (el máximo de una página): alcanza para elegir con qué solicitud vincular. */
 const SOLICITUDES_A_OFRECER = 50;
@@ -96,7 +96,6 @@ export function NuevoTrabajoScreen() {
     if (enCurso.current || imagenes.subiendo) return;
     const locales: Errores = {
       titulo: titulo.trim() === '' ? 'Es obligatorio.' : undefined,
-      fecha: fecha.trim() !== '' && !esFechaReal(fecha.trim()) ? 'Usá el formato AAAA-MM-DD' : undefined,
       imagenes: imagenes.conError ? 'Reintentá o quitá las imágenes que no se subieron.' : undefined,
     };
     setErrores(locales);
@@ -190,13 +189,11 @@ export function NuevoTrabajoScreen() {
         )}
         {errores.solicitud !== undefined && <Text style={estilos.error}>{errores.solicitud}</Text>}
 
-        <Input
-          etiqueta="Fecha del trabajo (AAAA-MM-DD)"
+        <SelectorDeFecha
+          etiqueta="Fecha del trabajo"
           value={fecha}
-          onChangeText={editar('fecha', setFecha)}
-          placeholder={hoyEnArgentina()}
-          keyboardType="numbers-and-punctuation"
-          autoCorrect={false}
+          onChange={editar('fecha', setFecha)}
+          onQuitar={() => setFecha('')}
           error={errores.fecha}
         />
 

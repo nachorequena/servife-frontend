@@ -12,6 +12,20 @@ jest.mock('../../../api/reputacion', () => ({ crearPublicacion: jest.fn(), actua
 jest.mock('../../../api/solicitudes', () => ({ listarMisSolicitudes: jest.fn() }));
 jest.mock('../../../api/archivos', () => ({ subirImagen: jest.fn() }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+/** El calendario nativo no corre en Jest: se reemplaza por un campo de texto con la misma interfaz. */
+jest.mock('../../../components/SelectorDeFecha', () => ({
+  SelectorDeFecha: ({ etiqueta, value, onChange, onQuitar, error }: Record<string, string & ((v?: string) => void)>) => {
+    const React = require('react');
+    const { Pressable, Text, TextInput } = require('react-native');
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(TextInput, { accessibilityLabel: etiqueta, value, onChangeText: onChange }),
+      value !== '' && onQuitar && React.createElement(Pressable, { onPress: onQuitar }, React.createElement(Text, null, 'Quitar fecha')),
+      error !== undefined && React.createElement(Text, null, error),
+    );
+  },
+}));
 jest.mock('../../../components/ImagenProtegida', () => ({
   ImagenProtegida: ({ uuid }: { uuid: string }) =>
     require('react').createElement(require('react-native').Text, null, `img:${uuid}`),
@@ -105,13 +119,21 @@ describe('NuevoTrabajoScreen', () => {
     expect(screen.getByText('Cliente 1 · 21/10/2026 · Cambio de la canilla del baño…')).toBeOnTheScreen();
   });
 
-  it('el título es obligatorio y la fecha, si está, tiene que ser válida', async () => {
+  it('el título es obligatorio', async () => {
     await abrir();
-    await fireEvent.changeText(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)'), '2026-02-31');
     await fireEvent.press(screen.getByText('Publicar'));
     expect(screen.getByText('Es obligatorio.')).toBeOnTheScreen();
-    expect(screen.getByText('Usá el formato AAAA-MM-DD')).toBeOnTheScreen();
     expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  it('Quitar fecha publica sin fecha del trabajo', async () => {
+    mockCrear.mockResolvedValue(existente);
+    await abrir();
+    await fireEvent.changeText(screen.getByLabelText('Título'), 'Baño');
+    await fireEvent.changeText(screen.getByLabelText('Fecha del trabajo'), '2026-10-10');
+    await fireEvent.press(screen.getByText('Quitar fecha'));
+    await fireEvent.press(screen.getByText('Publicar'));
+    expect(mockCrear).toHaveBeenCalledWith({ titulo: 'Baño', imagenIds: [] });
   });
 
   it('publica sin solicitud ni fecha y vuelve a la lista', async () => {
@@ -129,10 +151,10 @@ describe('NuevoTrabajoScreen', () => {
     await abrir();
     await fireEvent.changeText(screen.getByLabelText('Título'), 'Baño');
     await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026 · Pérdida'));
-    expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-09');
+    expect(screen.getByLabelText('Fecha del trabajo').props.value).toBe('2026-10-09');
     // otra solicitud reemplaza la fecha precargada que no se tocó
     await fireEvent.press(screen.getByText('Cliente 2 · 15/10/2026 · Pérdida'));
-    expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-15');
+    expect(screen.getByLabelText('Fecha del trabajo').props.value).toBe('2026-10-15');
 
     await fireEvent.press(screen.getByText('Publicar'));
     expect(mockCrear).toHaveBeenCalledWith({
@@ -143,11 +165,11 @@ describe('NuevoTrabajoScreen', () => {
     });
   });
 
-  it('una fecha escrita a mano no se pisa al elegir solicitud', async () => {
+  it('una fecha elegida a mano no se pisa al elegir solicitud', async () => {
     await abrir();
-    await fireEvent.changeText(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)'), '2026-10-10');
+    await fireEvent.changeText(screen.getByLabelText('Fecha del trabajo'), '2026-10-10');
     await fireEvent.press(screen.getByText('Cliente 1 · 09/10/2026 · Pérdida'));
-    expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-10');
+    expect(screen.getByLabelText('Fecha del trabajo').props.value).toBe('2026-10-10');
   });
 
   it('sube las fotos y manda sus uuid', async () => {
@@ -203,7 +225,7 @@ describe('NuevoTrabajoScreen', () => {
       expect(mockSetOptions).toHaveBeenCalledWith({ title: 'Editar trabajo' });
       expect(screen.getByLabelText('Título').props.value).toBe('Baño');
       expect(screen.getByLabelText('Descripción').props.value).toBe('Cañerías');
-      expect(screen.getByLabelText('Fecha del trabajo (AAAA-MM-DD)').props.value).toBe('2026-10-01');
+      expect(screen.getByLabelText('Fecha del trabajo').props.value).toBe('2026-10-01');
       expect(screen.getByText('img:img-viejo')).toBeOnTheScreen();
       expect(screen.getByRole('button', { name: 'Cliente 1 · 09/10/2026 · Pérdida' })).toBeSelected();
     });

@@ -45,9 +45,17 @@ export interface DatosDePublicacion {
   imagenIds?: string[];
 }
 
-/** D1 · POST /solicitudes/{uuid}/valoracion · CU08 · Cliente. Solo FINALIZADA y una vez (409). Todavía 501. */
-export const valorarSolicitud = (uuidSolicitud: string, cuerpo: unknown) =>
-  pedir(`/solicitudes/${uuidSolicitud}/valoracion`, { metodo: 'POST', cuerpo });
+/** Cuerpo de D1. */
+export interface DatosDeValoracion {
+  /** 1 a 5. */
+  puntaje: number;
+  /** Hasta 500; vacío se guarda null. */
+  comentario?: string;
+}
+
+/** D1 · POST /solicitudes/{uuid}/valoracion · CU08 · Cliente. Solo FINALIZADA y una vez (409 TRANSICION_INVALIDA). 201 con la reseña. */
+export const valorarSolicitud = (uuidSolicitud: string, cuerpo: DatosDeValoracion) =>
+  pedir<Resena>(`/solicitudes/${uuidSolicitud}/valoracion`, { metodo: 'POST', cuerpo });
 
 /** D2 · GET /prestadores/{uuid}/valoraciones · CU05, CU08. Paginado, más recientes primero. */
 export const listarValoracionesDePrestador = (uuidPrestador: string, pagina: ParametrosDePagina = {}) =>

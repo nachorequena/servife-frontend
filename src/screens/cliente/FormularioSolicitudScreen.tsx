@@ -6,13 +6,13 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { obtenerDisponibilidad } from '../../api/disponibilidad';
 import { ApiError } from '../../api/errores';
 import { crearSolicitud } from '../../api/solicitudes';
-import { AdjuntosDeImagenes, Button, Input, Logo } from '../../components';
+import { AdjuntosDeImagenes, Button, Input, Logo, SelectorDeFecha, SelectorDeHora } from '../../components';
 import { useAdjuntosDeImagenes } from '../../hooks/useAdjuntosDeImagenes';
 import type { ClienteStackParams } from '../../navigation/tipos';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
 import { mensajeDe } from '../../utils/errores';
-import { diaDeSemana, esFechaReal, hoyEnArgentina, nombresDeDias } from '../../utils/formato';
+import { diaDeSemana, hoyEnArgentina, nombresDeDias } from '../../utils/formato';
 
 interface Errores {
   fecha?: string;
@@ -26,7 +26,7 @@ interface Errores {
 type Dias = { tipo: 'cargando' } | { tipo: 'listo'; dias: number[] } | { tipo: 'error'; mensaje: string };
 
 function validarFecha(fecha: string, dias: number[]): string | undefined {
-  if (!esFechaReal(fecha)) return 'Usá el formato AAAA-MM-DD';
+  if (fecha === '') return 'Elegí una fecha.';
   if (fecha < hoyEnArgentina()) return 'Tiene que ser hoy o una fecha futura.';
   if (!dias.includes(diaDeSemana(fecha))) return 'Ese día el prestador no trabaja.';
   return undefined;
@@ -134,13 +134,11 @@ export function FormularioSolicitudScreen() {
         </View>
         <Text style={estilos.titulo}>Solicitar servicio</Text>
 
-        <Input
-          etiqueta="Fecha deseada (AAAA-MM-DD)"
+        <SelectorDeFecha
+          etiqueta="Fecha deseada"
           value={fecha}
-          onChangeText={editar('fecha', setFecha)}
-          placeholder={hoyEnArgentina()}
-          keyboardType="numbers-and-punctuation"
-          autoCorrect={false}
+          onChange={editar('fecha', setFecha)}
+          minimo={hoyEnArgentina()}
           error={errores.fecha}
         />
         {ayudaDeFecha !== undefined && <Text style={estilos.ayuda}>{ayudaDeFecha}</Text>}
@@ -150,13 +148,7 @@ export function FormularioSolicitudScreen() {
           </View>
         )}
 
-        <Input
-          etiqueta="Hora preferida"
-          value={hora}
-          onChangeText={editar('hora', setHora)}
-          placeholder="Ej.: a la mañana"
-          error={errores.hora}
-        />
+        <SelectorDeHora etiqueta="Hora preferida" value={hora} onChange={editar('hora', setHora)} error={errores.hora} />
         <Input
           etiqueta="Dirección"
           value={direccion}

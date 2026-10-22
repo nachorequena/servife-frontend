@@ -135,3 +135,35 @@ export function pesosACentavos(texto: string): number | null {
   const centavos = Number(entera) * 100 + Number(decimales.padEnd(2, '0'));
   return Number.isSafeInteger(centavos) ? centavos : null;
 }
+
+const dosDigitos = (n: number) => String(n).padStart(2, '0');
+
+/** "2026-09-18" → Date del 18/09/2026 a las 12:00 locales (mediodía: ninguna zona del dispositivo corre el día). Para el selector. */
+export function fechaADate(fecha: string): Date {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return new Date(anio, mes - 1, dia, 12);
+}
+
+/** Date elegido en el selector → "AAAA-MM-DD" con el día que el usuario vio en el calendario (sin pasar por UTC). */
+export function dateAFechaSola(fecha: Date): string {
+  return `${fecha.getFullYear()}-${dosDigitos(fecha.getMonth() + 1)}-${dosDigitos(fecha.getDate())}`;
+}
+
+/** "14:30" → Date de hoy a esa hora, para abrir el selector en ese valor. */
+export function horaADate(hora: string): Date {
+  const [horas, minutos] = hora.split(':').map(Number);
+  const d = new Date();
+  d.setHours(horas, minutos, 0, 0);
+  return d;
+}
+
+/** Date elegido en el selector → "HH:mm" (24 h). */
+export function dateAHora(fecha: Date): string {
+  return `${dosDigitos(fecha.getHours())}:${dosDigitos(fecha.getMinutes())}`;
+}
+
+/** "2026-10-08" → "2026-10-07". Se calcula con Date.UTC, sin depender de la zona del dispositivo. */
+export function diaAnterior(fecha: string): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return new Date(Date.UTC(anio, mes - 1, dia - 1)).toISOString().slice(0, 10);
+}
