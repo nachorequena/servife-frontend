@@ -3,14 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../api/errores';
 import { actualizarMiUsuario, cambiarContrasenia, type EstadoValidacion } from '../../api/identidad';
-import { Avatar, Button, CerrarSesion, Input } from '../../components';
+import { Avatar, Button, CerrarSesion, Input, SelectorDeFecha } from '../../components';
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
 import { MENSAJE_DE_RED } from '../../utils/errores';
+import { diaAnterior, hoyEnArgentina } from '../../utils/formato';
 
 const REGLA_DE_CONTRASENIA = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
 const MENSAJE_DE_CONTRASENIA = 'mínimo 8 caracteres, con al menos una letra y un número';
-const FORMATO_DE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const CAMPOS_DE_PERFIL = ['nombreApellido', 'telefono', 'direccion', 'fecNacimiento'];
 const CAMPOS_DE_CLAVE = ['contraseniaActual', 'contraseniaNueva'];
 
@@ -49,7 +49,6 @@ export function MiCuenta() {
   const [telefono, setTelefono] = useState(usuario?.telefono ?? '');
   const [direccion, setDireccion] = useState(usuario?.direccion ?? '');
   const [fecha, setFecha] = useState(usuario?.fecNacimiento ?? '');
-  const [errorDeFecha, setErrorDeFecha] = useState<string>();
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [falloDePerfil, setFalloDePerfil] = useState<Fallo>(SIN_FALLO);
@@ -72,11 +71,6 @@ export function MiCuenta() {
     setGuardado(false);
     setFalloDePerfil(SIN_FALLO);
     const fechaLimpia = fecha.trim();
-    if (!esGestor && fechaLimpia !== '' && !FORMATO_DE_FECHA.test(fechaLimpia)) {
-      setErrorDeFecha('Usá el formato AAAA-MM-DD');
-      return;
-    }
-    setErrorDeFecha(undefined);
     const cuerpo = esGestor
       ? { nombreApellido: nombre }
       : {
@@ -108,9 +102,10 @@ export function MiCuenta() {
     setCambiando(true);
     try {
       await cambiarContrasenia({ contraseniaActual: actual, contraseniaNueva: nueva });
-      // A7 revoca todos los refresh tokens (también el de este dispositivo): se pide un par nuevo.
+      // A7 revoca todos los refresh tokens (también el de este dispositivo): se pide un par nuevo, con el
+      // rol de esta sesión (si el email tiene cuenta de cliente y de prestador, sin rol sería 409, D43).
       try {
-        await ingresar(email, nueva);
+        await ingresar(email, nueva, sesion?.rol);
         setAviso('Contraseña actualizada.');
       } catch {
         setAviso('Contraseña actualizada. Ingresá de nuevo.');
@@ -169,14 +164,14 @@ export function MiCuenta() {
             onChangeText={setDireccion}
             error={errorDePerfil('direccion')}
           />
-          <Input
+          <SelectorDeFecha
             etiqueta="Fecha de nacimiento"
             value={fecha}
-            onChangeText={setFecha}
-            placeholder="AAAA-MM-DD"
-            autoCapitalize="none"
-            autoCorrect={false}
-            error={errorDeFecha ?? errorDePerfil('fecNacimiento')}
+            onChange={setFecha}
+            maximo={diaAnterior(hoyEnArgentina())}
+            inicial="2000-01-01"
+            onQuitar={() => setFecha('')}
+            error={errorDePerfil('fecNacimiento')}
           />
         </>
       )}

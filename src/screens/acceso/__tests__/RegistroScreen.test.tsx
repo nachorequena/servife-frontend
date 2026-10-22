@@ -10,10 +10,12 @@ jest.mock('../../../api/catalogo', () => ({ listarTiposServicio: () => mockLista
 
 const navigation = { navigate: jest.fn(), popTo: jest.fn() } as any;
 
+/** Abre como cliente (el valor por defecto); con 'PRESTADOR' toca el selector. */
 async function montar(rol?: 'CLIENTE' | 'PRESTADOR') {
-  await render(
-    <RegistroScreen navigation={navigation} route={{ key: 'r', name: 'Registro', params: rol ? { rol } : undefined } as any} />,
-  );
+  await render(<RegistroScreen navigation={navigation} route={{ key: 'r', name: 'Registro' } as any} />);
+  if (rol === 'PRESTADOR') {
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Prestador' }));
+  }
 }
 
 async function completar(contrasenia = 'Clave123', repetir = 'Clave123') {
@@ -37,6 +39,17 @@ beforeEach(() => {
 });
 
 describe('RegistroScreen', () => {
+  it('si el correo ya tiene cuenta, sugiere usar la misma contraseña para sumar el otro rol (D43)', async () => {
+    mockRegistrar.mockRejectedValue(
+      new ApiError(409, 'EMAIL_YA_REGISTRADO', 'Ese correo ya tiene una cuenta.', [{ campo: 'email', detalle: 'ya existe' }]),
+    );
+    await montar();
+    const usuario = await completar();
+    await usuario.press(screen.getByRole('button', { name: 'Crear cuenta' }));
+    expect(await screen.findByText('ya existe')).toBeTruthy();
+    expect(screen.getByText('Si es tuya y querés sumar el otro rol, usá la misma contraseña.')).toBeTruthy();
+  });
+
   it('el cliente no ve la lista de servicios', async () => {
     await montar();
     expect(screen.queryByText('Servicio que ofrecés')).toBeNull();

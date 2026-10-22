@@ -16,10 +16,13 @@ interface ValorDeSesion {
   sesion: Sesion | null;
   /** true hasta resolver el refresh token guardado (restauración al abrir la app). */
   restaurando: boolean;
-  /** Por qué se cerró la sesión sin que el usuario lo pidiera (cuenta suspendida); lo muestra Bienvenida. */
+  /** Por qué se cerró la sesión sin que el usuario lo pidiera (cuenta suspendida); lo muestra Ingresar. */
   avisoDeCierre: string | null;
-  /** A2 → guardar tokens → A4 → sesión. Devuelve el rol real de la cuenta. Relanza el error para que la pantalla lo muestre. */
-  ingresar: (email: string, contrasenia: string) => Promise<Rol>;
+  /**
+   * A2 → guardar tokens → A4 → sesión. Devuelve el rol real de la cuenta. Relanza el error para que la
+   * pantalla lo muestre. rol: el elegido cuando el email tiene cuenta de cliente y de prestador (D43).
+   */
+  ingresar: (email: string, contrasenia: string, rol?: Rol) => Promise<Rol>;
   /** Tras A6 (editar perfil). */
   actualizarUsuario: (usuario: Usuario) => void;
   cerrar: () => Promise<void>;
@@ -71,8 +74,8 @@ export function ProveedorDeSesion({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const ingresar = useCallback(async (email: string, contrasenia: string): Promise<Rol> => {
-    const { accessToken, refreshToken } = await iniciarSesion({ email, contrasenia });
+  const ingresar = useCallback(async (email: string, contrasenia: string, rol?: Rol): Promise<Rol> => {
+    const { accessToken, refreshToken } = await iniciarSesion(rol ? { email, contrasenia, rol } : { email, contrasenia });
     await guardarTokens({ accessToken, refreshToken });
     try {
       const usuario = await obtenerSesion();

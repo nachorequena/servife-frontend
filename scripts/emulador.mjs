@@ -5,9 +5,19 @@
 // Setup del emulador (una vez por máquina): README.md, sección "Emulador de Android".
 
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { ES_WINDOWS, adb, correr, emulador, emuladoresCorriendo, salir, sdk } from './android.mjs';
+import {
+  ES_WINDOWS,
+  adb,
+  avisarSiNoHayBackend,
+  correr,
+  emulador,
+  emuladoresCorriendo,
+  salir,
+  sdk,
+  urlApi,
+} from './android.mjs';
 
 const ESPERA_BOOT_MS = 180_000;
 
@@ -45,27 +55,6 @@ async function arrancarEmulador(avdPedido) {
     await new Promise((r) => setTimeout(r, 2000));
   }
   salir(`El emulador no terminó de bootear en ${ESPERA_BOOT_MS / 1000} s.`);
-}
-
-// La URL de la API sale de la variable de entorno o del .env, igual que en Expo.
-function urlApi() {
-  if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
-  if (!existsSync('.env')) {
-    console.warn('⚠ No hay .env: copialo de .env.example (ver README).');
-    return undefined;
-  }
-  const linea = readFileSync('.env', 'utf8')
-    .split(/\r?\n/)
-    .find((l) => l.startsWith('EXPO_PUBLIC_API_URL='));
-  return linea?.slice('EXPO_PUBLIC_API_URL='.length).trim();
-}
-
-async function avisarSiNoHayBackend(url) {
-  try {
-    await fetch(url, { signal: AbortSignal.timeout(3000) });
-  } catch {
-    console.warn(`⚠ El backend no responde en ${url}. Levantalo en servife-backend: docker compose up -d --build`);
-  }
 }
 
 const cliExpo = join('node_modules', 'expo', 'bin', 'cli');

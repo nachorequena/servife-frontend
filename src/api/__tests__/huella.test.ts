@@ -83,51 +83,46 @@ describe('huellaDisponible en iOS', () => {
   });
 });
 
-describe('una huella por rol', () => {
-  it('guarda cada rol por separado y no se mezclan', async () => {
-    await guardarConHuella('CLIENTE', 'cli@mail.com', 'ClaveCli1');
-    await guardarConHuella('PRESTADOR', 'pre@mail.com', 'ClavePre1');
+describe('una sola huella por teléfono (D43)', () => {
+  it('guarda correo y contraseña sin rol: con dos cuentas, el login pregunta con cuál entrar', async () => {
+    await guardarConHuella('ana@mail.com', 'Clave123');
 
-    expect(await correoConHuella('CLIENTE')).toBe('cli@mail.com');
-    expect(await correoConHuella('PRESTADOR')).toBe('pre@mail.com');
-    expect(await correoConHuella('GESTOR')).toBeNull();
-    expect(await leerConHuella('PRESTADOR')).toEqual({ estado: 'ok', correo: 'pre@mail.com', contrasenia: 'ClavePre1' });
+    expect(await correoConHuella()).toBe('ana@mail.com');
+    expect(await leerConHuella()).toEqual({ estado: 'ok', correo: 'ana@mail.com', contrasenia: 'Clave123' });
   });
 
-  it('olvidar un rol no toca los otros', async () => {
-    await guardarConHuella('CLIENTE', 'cli@mail.com', 'ClaveCli1');
-    await guardarConHuella('PRESTADOR', 'pre@mail.com', 'ClavePre1');
-    await olvidarHuella('CLIENTE');
-    expect(await correoConHuella('CLIENTE')).toBeNull();
-    expect(await correoConHuella('PRESTADOR')).toBe('pre@mail.com');
+  it('guardar otra cuenta reemplaza la anterior', async () => {
+    await guardarConHuella('ana@mail.com', 'Clave123');
+    await guardarConHuella('beto@mail.com', 'Clave456');
+    expect(await correoConHuella()).toBe('beto@mail.com');
   });
 
   it('las claves solo usan caracteres permitidos por SecureStore', async () => {
-    await guardarConHuella('GESTOR', 'g@mail.com', 'ClaveGes1');
+    await guardarConHuella('g@mail.com', 'ClaveGes1');
     for (const [clave] of mocks.setItemAsync.mock.calls) {
       expect(clave).toMatch(/^[A-Za-z0-9._-]+$/);
     }
   });
 
-  it('borra una sola vez las claves de la versión anterior (una cuenta por teléfono)', async () => {
+  it('borra una sola vez las claves de las versiones anteriores (sin rol y una por rol)', async () => {
     jest.resetModules();
-    mockAlmacen.set('huella.correo', 'viejo@mail.com');
-    mockAlmacen.set('huella.contrasenia', 'vieja');
+    const legadas = ['huella.correo', 'huella.contrasenia', 'huella.CLIENTE.correo', 'huella.CLIENTE.contrasenia',
+      'huella.PRESTADOR.correo', 'huella.PRESTADOR.contrasenia', 'huella.GESTOR.correo', 'huella.GESTOR.contrasenia'];
+    legadas.forEach((clave) => mockAlmacen.set(clave, 'viejo'));
     const modulo = require('../huella') as typeof import('../huella');
 
-    await modulo.correoConHuella('CLIENTE');
+    await modulo.correoConHuella();
 
-    expect(mockAlmacen.has('huella.correo')).toBe(false);
-    expect(mockAlmacen.has('huella.contrasenia')).toBe(false);
+    legadas.forEach((clave) => expect(mockAlmacen.has(clave)).toBe(false));
     const borrados = mocks.deleteItemAsync.mock.calls.length;
-    await modulo.correoConHuella('CLIENTE');
+    await modulo.correoConHuella();
     expect(mocks.deleteItemAsync.mock.calls.length).toBe(borrados);
   });
 });
 
 describe('guardarConHuella', () => {
   it('guarda la contraseña exigiendo huella y después el correo sin exigirla', async () => {
-    expect(await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123')).toBe(true);
+    expect(await guardarConHuella('ana@mail.com', 'Clave123')).toBe(true);
 
     const [claveContrasenia, valor, opciones] = mocks.setItemAsync.mock.calls[0];
     expect(valor).toBe('Clave123');
@@ -138,16 +133,16 @@ describe('guardarConHuella', () => {
     expect(claveContrasenia).not.toBe(mocks.setItemAsync.mock.calls[1][0]);
     expect(mocks.setItemAsync.mock.calls[1][1]).toBe('ana@mail.com');
     expect(mocks.setItemAsync.mock.calls[1][2]).toBeUndefined();
-    expect(await correoConHuella('CLIENTE')).toBe('ana@mail.com');
+    expect(await correoConHuella()).toBe('ana@mail.com');
   });
 
   it('si el usuario cancela, devuelve false y no deja nada guardado', async () => {
     mocks.setItemAsync.mockRejectedValueOnce(new Error('cancelado'));
 
-    expect(await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123')).toBe(false);
+    expect(await guardarConHuella('ana@mail.com', 'Clave123')).toBe(false);
 
     expect(mockAlmacen.size).toBe(0);
-    expect(await correoConHuella('CLIENTE')).toBeNull();
+    expect(await correoConHuella()).toBeNull();
   });
 
   it('si falla al guardar el correo, deshace la contraseña', async () => {
@@ -157,7 +152,7 @@ describe('guardarConHuella', () => {
     });
     mocks.setItemAsync.mockRejectedValueOnce(new Error('falló'));
 
-    expect(await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123')).toBe(false);
+    expect(await guardarConHuella('ana@mail.com', 'Clave123')).toBe(false);
 
     expect(mockAlmacen.size).toBe(0);
   });
@@ -165,10 +160,10 @@ describe('guardarConHuella', () => {
 
 describe('leerConHuella', () => {
   it('devuelve correo y contraseña pidiendo la huella', async () => {
-    await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123');
+    await guardarConHuella('ana@mail.com', 'Clave123');
     mocks.getItemAsync.mockClear();
 
-    expect(await leerConHuella('CLIENTE')).toEqual({ estado: 'ok', correo: 'ana@mail.com', contrasenia: 'Clave123' });
+    expect(await leerConHuella()).toEqual({ estado: 'ok', correo: 'ana@mail.com', contrasenia: 'Clave123' });
 
     const conAutenticacion = mocks.getItemAsync.mock.calls.find(([, opciones]) => opciones !== undefined);
     expect(conAutenticacion?.[1]).toEqual({
@@ -178,52 +173,52 @@ describe('leerConHuella', () => {
   });
 
   it('si el usuario cancela, devuelve cancelado y conserva lo guardado', async () => {
-    await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123');
+    await guardarConHuella('ana@mail.com', 'Clave123');
     mocks.getItemAsync.mockImplementation((clave, opciones) =>
       opciones?.requireAuthentication ? Promise.reject(new Error('cancelado')) : lecturaSinHuella(clave),
     );
 
-    expect(await leerConHuella('CLIENTE')).toEqual({ estado: 'cancelado' });
-    expect(await correoConHuella('CLIENTE')).toBe('ana@mail.com');
+    expect(await leerConHuella()).toEqual({ estado: 'cancelado' });
+    expect(await correoConHuella()).toBe('ana@mail.com');
   });
 
   it('si la clave se invalidó (hay correo pero no contraseña), borra todo y devuelve invalidada', async () => {
-    await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123');
+    await guardarConHuella('ana@mail.com', 'Clave123');
     mocks.getItemAsync.mockImplementation((clave, opciones) =>
       opciones?.requireAuthentication ? Promise.resolve(null) : lecturaSinHuella(clave),
     );
 
-    expect(await leerConHuella('CLIENTE')).toEqual({ estado: 'invalidada' });
+    expect(await leerConHuella()).toEqual({ estado: 'invalidada' });
     expect(mockAlmacen.size).toBe(0);
   });
 
   it('sin nada guardado, devuelve cancelado sin pedir la huella', async () => {
-    expect(await leerConHuella('CLIENTE')).toEqual({ estado: 'cancelado' });
+    expect(await leerConHuella()).toEqual({ estado: 'cancelado' });
     expect(mocks.getItemAsync).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('olvidarHuella', () => {
   it('borra correo y contraseña', async () => {
-    await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123');
-    await olvidarHuella('CLIENTE');
+    await guardarConHuella('ana@mail.com', 'Clave123');
+    await olvidarHuella();
     expect(mockAlmacen.size).toBe(0);
   });
 
   it('borra el correo aunque falle borrar la contraseña', async () => {
-    await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123');
+    await guardarConHuella('ana@mail.com', 'Clave123');
     mocks.deleteItemAsync.mockRejectedValueOnce(new Error('falló'));
 
-    await expect(olvidarHuella('CLIENTE')).resolves.toBeUndefined();
+    await expect(olvidarHuella()).resolves.toBeUndefined();
 
-    expect(await correoConHuella('CLIENTE')).toBeNull();
+    expect(await correoConHuella()).toBeNull();
   });
 });
 
 describe('cierre de sesión', () => {
   it('limpiarTokens no borra la huella', async () => {
-    await guardarConHuella('CLIENTE', 'ana@mail.com', 'Clave123');
+    await guardarConHuella('ana@mail.com', 'Clave123');
     await limpiarTokens();
-    expect(await correoConHuella('CLIENTE')).toBe('ana@mail.com');
+    expect(await correoConHuella()).toBe('ana@mail.com');
   });
 });

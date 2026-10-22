@@ -9,11 +9,11 @@ import { HistorialScreen } from '../screens/cliente/HistorialScreen';
 import { InicioScreen } from '../screens/cliente/InicioScreen';
 import { PerfilClienteScreen } from '../screens/cliente/PerfilClienteScreen';
 import { PerfilPrestadorScreen } from '../screens/cliente/PerfilPrestadorScreen';
+import { ValoracionesDelPrestadorScreen } from '../screens/cliente/ValoracionesDelPrestadorScreen';
 import { ValoracionScreen } from '../screens/cliente/ValoracionScreen';
 import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
-import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
 import { DetalleTrabajoScreen } from '../screens/prestador/DetalleTrabajoScreen';
 import { FiltrosProvider } from '../store/filtros';
 import { colores } from '../theme';
@@ -48,9 +48,7 @@ export function ClienteNavigator() {
         <Stack.Screen name="FormularioSolicitud" component={FormularioSolicitudScreen} options={{ title: 'Solicitar servicio' }} />
         <Stack.Screen name="DetalleSolicitud" component={DetalleSolicitudScreen} options={{ title: 'Solicitud' }} />
         <Stack.Screen name="Valoracion" component={ValoracionScreen} options={{ title: 'Valorar' }} />
-        <Stack.Screen name="TrabajosRealizados" options={{ title: 'Trabajos realizados' }}>
-          {({ route }) => <TrabajosRealizadosScreen soloLectura uuidPrestador={route.params.uuidPrestador} />}
-        </Stack.Screen>
+        <Stack.Screen name="ValoracionesDelPrestador" component={ValoracionesDelPrestadorScreen} options={{ title: 'Valoraciones' }} />
         <Stack.Screen name="DetalleTrabajo" options={{ title: 'Trabajo' }}>
           {() => <DetalleTrabajoScreen soloLectura />}
         </Stack.Screen>

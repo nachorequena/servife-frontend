@@ -21,7 +21,7 @@ const publicacion: Publicacion = {
   creadoEn: '2026-10-10T12:00:00Z',
 };
 
-let mockParams: { publicacion: Publicacion } = { publicacion };
+let mockParams: { publicacion: Publicacion; nombrePrestador?: string } = { publicacion };
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -45,6 +45,39 @@ describe('DetalleTrabajoScreen', () => {
     expect(screen.getByText('Se cambió toda la cañería del baño.')).toBeOnTheScreen();
     expect(screen.getByText('img:img-1')).toBeOnTheScreen();
     expect(screen.getByText('img:img-2')).toBeOnTheScreen();
+  });
+
+  it('desde el perfil muestra quién lo hizo, como una publicación', async () => {
+    mockParams = { publicacion, nombrePrestador: 'Pedro Gas' };
+    await render(<DetalleTrabajoScreen soloLectura />);
+    expect(screen.getByText('Pedro Gas')).toBeOnTheScreen();
+  });
+
+  it('sin nombre del prestador no hay encabezado', async () => {
+    await render(<DetalleTrabajoScreen soloLectura />);
+    expect(screen.queryByText('Pedro Gas')).toBeNull();
+  });
+
+  it('con varias fotos muestra el contador y lo actualiza al deslizar', async () => {
+    await render(<DetalleTrabajoScreen soloLectura />);
+    expect(screen.getByText('1/2')).toBeOnTheScreen();
+    await fireEvent(screen.getByTestId('carrusel-fotos'), 'momentumScrollEnd', {
+      nativeEvent: { contentOffset: { x: 750, y: 0 } },
+    });
+    expect(screen.getByText('2/2')).toBeOnTheScreen();
+  });
+
+  it('con una sola foto no hay contador', async () => {
+    mockParams = { publicacion: { ...publicacion, imagenIds: ['img-1'] } };
+    await render(<DetalleTrabajoScreen soloLectura />);
+    expect(screen.queryByText('1/1')).toBeNull();
+  });
+
+  it('sin fotos no hay carrusel', async () => {
+    mockParams = { publicacion: { ...publicacion, imagenIds: [] } };
+    await render(<DetalleTrabajoScreen soloLectura />);
+    expect(screen.queryByTestId('carrusel-fotos')).toBeNull();
+    expect(screen.getByText('Cambio de cañería')).toBeOnTheScreen();
   });
 
   it('el cliente no ve Editar ni Eliminar', async () => {

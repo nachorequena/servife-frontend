@@ -36,8 +36,11 @@ export const registrar = (cuerpo: {
   idTipoServicio?: string;
 }) => pedir<Usuario>('/auth/registro', { metodo: 'POST', cuerpo, publico: true });
 
-/** A2 · POST /auth/login · CU02. Único para los tres roles. */
-export const iniciarSesion = (cuerpo: { email: string; contrasenia: string }) =>
+/**
+ * A2 · POST /auth/login · CU02. Único para los tres roles. rol solo hace falta si el email tiene cuenta
+ * de cliente y de prestador: sin rol, el backend responde 409 ELEGIR_ROL (D43).
+ */
+export const iniciarSesion = (cuerpo: { email: string; contrasenia: string; rol?: Rol }) =>
   pedir<TokensDeSesion>('/auth/login', { metodo: 'POST', cuerpo, publico: true });
 
 /** A4 · GET /auth/me · CU02. Se llama al abrir la app. */

@@ -4,6 +4,7 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@react-navigation/bottom-tabs": "^7.20.0",
     "@react-navigation/native": "^7.5.0",
     "@react-navigation/native-stack": "^7.20.0",
@@ -37,6 +38,7 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "emulador": "node scripts/emulador.mjs",
+    "celular": "node scripts/celular.mjs",
     "pantalla": "node scripts/pantalla.mjs"
   },
   "private": true,

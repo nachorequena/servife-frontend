@@ -16,6 +16,8 @@ export { EtiquetaDeEstado } from './EtiquetaDeEstado';
 export { HojaInferior } from './HojaInferior';
 export { ImagenProtegida } from './ImagenProtegida';
 export { Input } from './Input';
+export { SelectorDeFecha } from './SelectorDeFecha';
+export { SelectorDeHora } from './SelectorDeHora';
 export { Logo } from './Logo';
 export { PantallaPendiente } from './PantallaPendiente';
 export { Stars } from './Stars';

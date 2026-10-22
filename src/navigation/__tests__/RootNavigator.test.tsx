@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, userEvent } from '@testing-library/react-native';
+import { render, screen, userEvent } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ApiError } from '../../api/errores';
 import { iniciarSesion, obtenerSesion, type Usuario } from '../../api/identidad';
 import { ProveedorDeSesion } from '../../store/sesion';
 import { RootNavigator } from '../RootNavigator';
@@ -39,7 +40,6 @@ async function entrarComo(rol: Usuario['rol']) {
     estadoValidacion: null,
   });
   await renderApp();
-  await fireEvent.press(await screen.findByRole('button', { name: 'Cliente' }));
   const usuario = userEvent.setup();
   await usuario.type(await screen.findByLabelText('Correo'), 'ana@mail.com');
   await usuario.type(screen.getByLabelText('Contraseña'), 'Clave123');
@@ -48,9 +48,30 @@ async function entrarComo(rol: Usuario['rol']) {
 
 /** Tabs por rol según D04 (servife-ia/.ai/09-ux-ui.md §Navegación). */
 describe('navegación por rol', () => {
-  it('sin sesión muestra la bienvenida', async () => {
+  it('sin sesión abre directo en el inicio de sesión, sin selector de rol', async () => {
     await renderApp();
-    expect(await screen.findByText('Ingreso como administrador')).toBeTruthy();
+    expect(await screen.findByText('Inicio de sesión')).toBeTruthy();
+    expect(screen.queryByText('Ingreso como administrador')).toBeNull();
+    expect(screen.queryByText('¿Cómo querés acceder hoy?')).toBeNull();
+  });
+
+  it('con cuenta de cliente y de prestador pregunta y entra con la elegida (D43)', async () => {
+    (iniciarSesion as jest.Mock)
+      .mockRejectedValueOnce(new ApiError(409, 'ELEGIR_ROL', 'Elegí con cuál ingresar.'))
+      .mockResolvedValueOnce({ accessToken: 'a', refreshToken: 'r', rol: 'PRESTADOR' });
+    (obtenerSesion as jest.Mock).mockResolvedValue({
+      uuid: 'u-1', rol: 'PRESTADOR', nombreApellido: 'Ana Pérez', email: 'ana@mail.com',
+      telefono: null, direccion: null, fecNacimiento: null, estadoValidacion: 'PENDIENTE',
+    });
+    await renderApp();
+    const usuario = userEvent.setup();
+    await usuario.type(await screen.findByLabelText('Correo'), 'ana@mail.com');
+    await usuario.type(screen.getByLabelText('Contraseña'), 'Clave123');
+    await usuario.press(screen.getByRole('button', { name: 'Continuar' }));
+    await usuario.press(await screen.findByRole('button', { name: 'Prestador' }));
+
+    expect(iniciarSesion).toHaveBeenLastCalledWith({ email: 'ana@mail.com', contrasenia: 'Clave123', rol: 'PRESTADOR' });
+    expect(await screen.findByRole('button', { name: /^Solicitudes/ })).toBeTruthy();
   });
 
   it('el cliente ve Inicio, Mensajes, Historial y Perfil', async () => {
