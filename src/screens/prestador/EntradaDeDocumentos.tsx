@@ -10,5 +10,12 @@ import type { PrestadorStackParams } from '../../navigation/tipos';
  */
 export function EntradaDeDocumentos() {
   const navigation = useNavigation<NativeStackNavigationProp<PrestadorStackParams>>();
-  return <Button etiqueta="Documentos para la validación" variante="terciario" onPress={() => navigation.navigate('Documentos')} />;
+  return (
+    <Button
+      etiqueta="Documentos para la validación"
+      variante="contorno"
+      icono="document-attach-outline"
+      onPress={() => navigation.navigate('Documentos')}
+    />
+  );
 }
