@@ -9,6 +9,7 @@ import { HistorialScreen } from '../screens/cliente/HistorialScreen';
 import { InicioScreen } from '../screens/cliente/InicioScreen';
 import { PerfilClienteScreen } from '../screens/cliente/PerfilClienteScreen';
 import { PerfilPrestadorScreen } from '../screens/cliente/PerfilPrestadorScreen';
+import { ResenasScreen } from '../screens/cliente/ResenasScreen';
 import { ValoracionScreen } from '../screens/cliente/ValoracionScreen';
 import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { ChatScreen } from '../screens/compartidas/ChatScreen';
@@ -48,6 +49,7 @@ export function ClienteNavigator() {
         <Stack.Screen name="FormularioSolicitud" component={FormularioSolicitudScreen} options={{ title: 'Solicitar servicio' }} />
         <Stack.Screen name="DetalleSolicitud" component={DetalleSolicitudScreen} options={{ title: 'Solicitud' }} />
         <Stack.Screen name="Valoracion" component={ValoracionScreen} options={{ title: 'Valorar' }} />
+        <Stack.Screen name="Resenas" component={ResenasScreen} options={{ title: 'Reseñas' }} />
         <Stack.Screen name="TrabajosRealizados" options={{ title: 'Trabajos realizados' }}>
           {({ route }) => <TrabajosRealizadosScreen soloLectura uuidPrestador={route.params.uuidPrestador} />}
         </Stack.Screen>
