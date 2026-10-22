@@ -1,5 +1,5 @@
 import { memoria } from '../../../__mocks__/expo-file-system';
-import { vaciarCacheDeImagenes } from '../cacheImagenes';
+import { vaciarCacheDeImagenes, vaciarDocumentosDescargados } from '../cacheImagenes';
 import { limpiarTokens } from '../tokens';
 
 jest.mock('expo-secure-store', () => ({ deleteItemAsync: jest.fn(() => Promise.resolve()) }));
@@ -19,8 +19,19 @@ describe('cache de imágenes', () => {
     expect(memoria.archivos.size).toBe(0);
   });
 
-  it('limpiarTokens (fin de sesión) vacía la caché', async () => {
+  it('vaciarDocumentosDescargados borra solo los documentos de validación', () => {
     llenarCache();
+    memoria.carpetas.add('file:///cache/documentos');
+    memoria.archivos.set('file:///cache/documentos/d-1', new Uint8Array([2]));
+    vaciarDocumentosDescargados();
+    expect(memoria.archivos.has('file:///cache/documentos/d-1')).toBe(false);
+    expect(memoria.archivos.has('file:///cache/archivos/a-1')).toBe(true);
+  });
+
+  it('limpiarTokens (fin de sesión) vacía la caché, también los documentos', async () => {
+    llenarCache();
+    memoria.carpetas.add('file:///cache/documentos');
+    memoria.archivos.set('file:///cache/documentos/d-1', new Uint8Array([2]));
     await limpiarTokens();
     expect(memoria.archivos.size).toBe(0);
   });

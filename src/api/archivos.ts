@@ -1,4 +1,4 @@
-import { File } from 'expo-file-system';
+import { File, type Directory } from 'expo-file-system';
 
 import { carpetaDeImagenes } from './cacheImagenes';
 import { pedir, renovarSesionParaRecursos, URL_BASE } from './cliente';
@@ -12,7 +12,7 @@ export interface ArchivoSubido {
 }
 
 /** Una foto de 2-5 MB con mala señal no entra en los 10 s por defecto del cliente. */
-const TIEMPO_MAXIMO_DE_SUBIDA_MS = 60_000;
+export const TIEMPO_MAXIMO_DE_SUBIDA_MS = 60_000;
 
 const EXTENSIONES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
@@ -26,15 +26,20 @@ const EXTENSIONES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 
  * porque salen del uri (que a veces no tiene extensión).
  */
 export function subirImagen(uri: string, mime: string, nombre?: string): Promise<ArchivoSubido> {
+  const formulario = new FormData();
+  formulario.append('archivo', parteDeArchivo(uri, mime, nombre));
+  return pedir<ArchivoSubido>('/archivos', { metodo: 'POST', cuerpo: formulario, tiempoMaximoMs: TIEMPO_MAXIMO_DE_SUBIDA_MS });
+}
+
+/** La parte `archivo` de un multipart a partir de un archivo local (ver subirImagen). También la usa E7 (api/gestion.ts). */
+export function parteDeArchivo(uri: string, mime: string, nombre?: string): Blob {
   const archivo = new File(uri);
   const parte = {
     name: nombre ?? `imagen.${EXTENSIONES[mime] ?? 'jpg'}`,
     type: mime,
     bytes: () => archivo.bytes(),
   };
-  const formulario = new FormData();
-  formulario.append('archivo', parte as unknown as Blob);
-  return pedir<ArchivoSubido>('/archivos', { metodo: 'POST', cuerpo: formulario, tiempoMaximoMs: TIEMPO_MAXIMO_DE_SUBIDA_MS });
+  return parte as unknown as Blob;
 }
 
 /** GET /archivos/{uuid}: devuelve los bytes; requiere Authorization (ver descargarImagen). */
@@ -57,23 +62,31 @@ export function descargarImagen(uuid: string): Promise<string> {
   return descarga;
 }
 
-async function descargar(uuid: string): Promise<string> {
-  const carpeta = carpetaDeImagenes();
-  const definitivo = new File(carpeta, uuid);
+function descargar(uuid: string): Promise<string> {
+  return descargarConSesion(urlDeArchivo(uuid), carpetaDeImagenes(), uuid);
+}
+
+/**
+ * Descarga una URL protegida (con Authorization) a `carpeta/nombre` y devuelve el uri local; si ya está, lo
+ * reutiliza. Ante un 401 renueva la sesión una vez y reintenta una vez. La usan las imágenes (GET /archivos)
+ * y los documentos de validación del gestor (E8b, api/gestion.ts).
+ */
+export async function descargarConSesion(url: string, carpeta: Directory, nombre: string): Promise<string> {
+  const definitivo = new File(carpeta, nombre);
   if (definitivo.exists) {
     return definitivo.uri;
   }
   carpeta.create({ idempotent: true, intermediates: true });
   // Se baja a un temporal y recién al terminar bien se renombra: un corte nunca deja un archivo que cuente como caché.
-  const temporal = new File(carpeta, `${uuid}.tmp`);
+  const temporal = new File(carpeta, `${nombre}.tmp`);
   try {
     try {
-      await bajar(uuid, temporal);
+      await bajar(url, temporal);
     } catch (error) {
       if (!esNoAutorizado(error) || !(await renovarSesionParaRecursos())) {
         throw error;
       }
-      await bajar(uuid, temporal);
+      await bajar(url, temporal);
     }
     await temporal.move(definitivo);
     return definitivo.uri;
@@ -85,12 +98,12 @@ async function descargar(uuid: string): Promise<string> {
   }
 }
 
-async function bajar(uuid: string, destino: File): Promise<void> {
+async function bajar(url: string, destino: File): Promise<void> {
   const token = obtenerAccessToken();
   if (!token) {
     throw new Error('No hay sesión para descargar la imagen');
   }
-  await File.downloadFileAsync(urlDeArchivo(uuid), destino, {
+  await File.downloadFileAsync(url, destino, {
     headers: { Authorization: `Bearer ${token}` },
     idempotent: true,
   });
