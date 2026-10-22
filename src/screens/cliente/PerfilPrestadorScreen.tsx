@@ -92,6 +92,11 @@ export function PerfilPrestadorScreen() {
         {p.verificado ? <Fila icono="shield-checkmark" texto="Verificado" color={colores.verde} /> : null}
         <View style={estilos.botones}>
           <Button
+            etiqueta="Ver reseñas"
+            variante="secundario"
+            onPress={() => navigation.navigate('Resenas', { uuidPrestador })}
+          />
+          <Button
             etiqueta="Ver trabajos realizados"
             variante="secundario"
             onPress={() => navigation.navigate('TrabajosRealizados', { uuidPrestador })}

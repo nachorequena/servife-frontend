@@ -91,9 +91,11 @@ describe('PerfilPrestadorScreen', () => {
     expect(await screen.findByText('Geronimo Lopez')).toBeOnTheScreen();
   });
 
-  it('los botones navegan a trabajos realizados y al formulario de solicitud', async () => {
+  it('los botones navegan a reseñas, trabajos realizados y al formulario de solicitud', async () => {
     mockObtener.mockResolvedValue(detalle);
     await render(<PerfilPrestadorScreen />);
+    await fireEvent.press(await screen.findByText('Ver reseñas'));
+    expect(mockNavigate).toHaveBeenCalledWith('Resenas', { uuidPrestador: 'p1' });
     await fireEvent.press(await screen.findByText('Ver trabajos realizados'));
     expect(mockNavigate).toHaveBeenCalledWith('TrabajosRealizados', { uuidPrestador: 'p1' });
     await fireEvent.press(screen.getByText('Solicitar servicio'));
