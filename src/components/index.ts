@@ -10,6 +10,8 @@ export { EstadoVacio } from './EstadoVacio';
 export { EtiquetaDeEstado } from './EtiquetaDeEstado';
 export { ImagenProtegida } from './ImagenProtegida';
 export { Input } from './Input';
+export { SelectorDeFecha } from './SelectorDeFecha';
+export { SelectorDeHora } from './SelectorDeHora';
 export { Logo } from './Logo';
 export { PantallaPendiente } from './PantallaPendiente';
 export { Stars } from './Stars';
