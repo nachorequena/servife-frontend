@@ -1,10 +1,8 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { UsuarioAdmin } from '../api/gestion';
-import type { RolRegistrable } from '../api/identidad';
 import type { Publicacion } from '../api/reputacion';
 import type { AccionSobreSolicitud } from '../api/solicitudes';
-import type { Rol } from '../store/sesion';
 
 /**
  * Parámetros de cada ruta. Los IDs que viajan son siempre uuid (servife-ia/.ai/07-security.md).
@@ -12,9 +10,8 @@ import type { Rol } from '../store/sesion';
  */
 
 export type AccesoParams = {
-  Bienvenida: undefined;
-  Ingresar: { aviso?: string; rol?: Rol } | undefined;
-  Registro: { rol?: RolRegistrable } | undefined;
+  Ingresar: { aviso?: string } | undefined;
+  Registro: undefined;
   Recuperar: undefined;
   Restablecer: { email: string };
 };

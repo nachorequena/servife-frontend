@@ -23,9 +23,10 @@ const AVISOS: Record<RolRegistrable, string> = {
 /**
  * Registro de cliente o prestador · CU01 · A1, B1. Una sola pantalla con selector de rol;
  * el prestador elige además el tipo de servicio (lista de B1). Valida contraseña y tipo antes de enviar.
+ * Con el correo de una cuenta del otro rol y la misma contraseña, crea la segunda cuenta (D43).
  */
-export function RegistroScreen({ navigation, route }: Props) {
-  const [rol, setRol] = useState<RolRegistrable>(route.params?.rol ?? 'CLIENTE');
+export function RegistroScreen({ navigation }: Props) {
+  const [rol, setRol] = useState<RolRegistrable>('CLIENTE');
   const [nombreApellido, setNombreApellido] = useState('');
   const [email, setEmail] = useState('');
   const [contrasenia, setContrasenia] = useState('');
@@ -115,6 +116,9 @@ export function RegistroScreen({ navigation, route }: Props) {
         autoCorrect={false}
         error={error?.errorDe('email')}
       />
+      {error?.codigo === 'EMAIL_YA_REGISTRADO' && (
+        <Text style={estilos.pista}>Si es tuya y querés sumar el otro rol, usá la misma contraseña.</Text>
+      )}
       <Input
         etiqueta="Contraseña"
         value={contrasenia}
@@ -162,4 +166,5 @@ const estilos = StyleSheet.create({
   servicios: { gap: espaciado.s, marginBottom: espaciado.l },
   subtitulo: { ...tipografia.seccion, color: colores.tinta },
   mensaje: { ...tipografia.cuerpo, color: colores.tinta, marginTop: espaciado.m },
+  pista: { ...tipografia.cuerpo, color: colores.tintaSecundaria, marginBottom: espaciado.m },
 });
