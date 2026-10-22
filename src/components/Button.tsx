@@ -95,7 +95,8 @@ const estilos = StyleSheet.create({
     borderColor: colores.borde,
     alignSelf: 'stretch',
   },
-  texto: { backgroundColor: 'transparent', alignSelf: 'center' },
+  // Sin fondo ni borde, el relleno horizontal solo correría el texto: queda alineado con el contenido.
+  texto: { backgroundColor: 'transparent', alignSelf: 'center', paddingHorizontal: 0 },
   completo: { alignSelf: 'stretch' },
   contenido: { alignSelf: 'flex-start' },
   atenuado: { opacity: opacidades.atenuado },
