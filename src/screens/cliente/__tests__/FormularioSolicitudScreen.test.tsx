@@ -13,6 +13,31 @@ jest.mock('../../../api/solicitudes', () => ({ crearSolicitud: jest.fn() }));
 jest.mock('../../../api/archivos', () => ({ subirImagen: jest.fn() }));
 jest.mock('../../../api/disponibilidad', () => ({ obtenerDisponibilidad: jest.fn() }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
+/** Los selectores nativos no corren en Jest: se reemplazan por un campo de texto con la misma interfaz. */
+jest.mock('../../../components/SelectorDeFecha', () => ({
+  SelectorDeFecha: ({ etiqueta, value, onChange, minimo, error }: Record<string, string & ((v: string) => void)>) => {
+    const React = require('react');
+    const { Text, TextInput } = require('react-native');
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(TextInput, { accessibilityLabel: etiqueta, value, onChangeText: onChange, placeholder: minimo }),
+      error !== undefined && React.createElement(Text, null, error),
+    );
+  },
+}));
+jest.mock('../../../components/SelectorDeHora', () => ({
+  SelectorDeHora: ({ etiqueta, value, onChange, error }: Record<string, string & ((v: string) => void)>) => {
+    const React = require('react');
+    const { Text, TextInput } = require('react-native');
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(TextInput, { accessibilityLabel: etiqueta, value, onChangeText: onChange }),
+      error !== undefined && React.createElement(Text, null, error),
+    );
+  },
+}));
 jest.mock('../../../utils/formato', () => ({
   ...jest.requireActual('../../../utils/formato'),
   hoyEnArgentina: () => '2026-10-08', // jueves
@@ -41,7 +66,7 @@ async function abrir() {
 }
 
 async function completar(fecha = viernes) {
-  await fireEvent.changeText(screen.getByLabelText('Fecha deseada (AAAA-MM-DD)'), fecha);
+  await fireEvent.changeText(screen.getByLabelText('Fecha deseada'), fecha);
   await fireEvent.changeText(screen.getByLabelText('Descripción del trabajo'), 'Tomas que no funcionan');
 }
 
@@ -74,8 +99,6 @@ describe('FormularioSolicitudScreen', () => {
   });
 
   it.each([
-    ['2026/10/09', 'Usá el formato AAAA-MM-DD'],
-    ['2026-02-31', 'Usá el formato AAAA-MM-DD'],
     ['2026-10-07', 'Tiene que ser hoy o una fecha futura.'],
     ['2026-10-10', 'Ese día el prestador no trabaja.'],
   ])('valida la fecha %s', async (fecha, mensaje) => {
@@ -83,6 +106,14 @@ describe('FormularioSolicitudScreen', () => {
     await completar(fecha);
     await fireEvent.press(screen.getByText('Enviar solicitud'));
     expect(screen.getByText(mensaje)).toBeOnTheScreen();
+    expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  it('sin fecha pide elegir una', async () => {
+    await abrir();
+    await fireEvent.changeText(screen.getByLabelText('Descripción del trabajo'), 'Tomas que no funcionan');
+    await fireEvent.press(screen.getByText('Enviar solicitud'));
+    expect(screen.getByText('Elegí una fecha.')).toBeOnTheScreen();
     expect(mockCrear).not.toHaveBeenCalled();
   });
 
@@ -100,7 +131,7 @@ describe('FormularioSolicitudScreen', () => {
     mockCrear.mockResolvedValue({});
     await abrir();
     await completar();
-    await fireEvent.changeText(screen.getByLabelText('Hora preferida'), 'a la mañana');
+    await fireEvent.changeText(screen.getByLabelText('Hora preferida'), '09:30');
     await fireEvent.press(screen.getByText('Adjuntar imágenes'));
     await waitFor(() => expect(mockSubir).toHaveBeenCalledWith('file:///a.jpg', 'image/png', 'a.png'));
     await fireEvent.press(screen.getByText('Enviar solicitud'));
@@ -108,7 +139,7 @@ describe('FormularioSolicitudScreen', () => {
       expect(mockCrear).toHaveBeenCalledWith({
         uuidPrestador: 'p1',
         fechaDeseada: viernes,
-        horaPreferida: 'a la mañana',
+        horaPreferida: '09:30',
         direccion: 'Calle 1, Santa Fe',
         descripcion: 'Tomas que no funcionan',
         imagenIds: ['img-1'],
@@ -221,21 +252,21 @@ describe('FormularioSolicitudScreen', () => {
 
   it('el error de un campo desaparece al editarlo', async () => {
     await abrir();
-    await completar('2026/10/09');
+    await fireEvent.changeText(screen.getByLabelText('Descripción del trabajo'), 'Tomas que no funcionan');
     await fireEvent.changeText(screen.getByLabelText('Dirección'), '');
     await fireEvent.press(screen.getByText('Enviar solicitud'));
-    expect(screen.getByText('Usá el formato AAAA-MM-DD')).toBeOnTheScreen();
+    expect(screen.getByText('Elegí una fecha.')).toBeOnTheScreen();
     expect(screen.getAllByText('Es obligatoria.')).toHaveLength(1);
-    await fireEvent.changeText(screen.getByLabelText('Fecha deseada (AAAA-MM-DD)'), '2026-10-09');
-    expect(screen.queryByText('Usá el formato AAAA-MM-DD')).toBeNull();
+    await fireEvent.changeText(screen.getByLabelText('Fecha deseada'), '2026-10-09');
+    expect(screen.queryByText('Elegí una fecha.')).toBeNull();
     expect(screen.getAllByText('Es obligatoria.')).toHaveLength(1);
     await fireEvent.changeText(screen.getByLabelText('Dirección'), 'Calle 2');
     expect(screen.queryByText('Es obligatoria.')).toBeNull();
   });
 
-  it('el placeholder de la fecha es la fecha de hoy en Argentina', async () => {
+  it('el calendario no deja elegir antes de hoy en Argentina', async () => {
     await abrir();
-    expect(screen.getByLabelText('Fecha deseada (AAAA-MM-DD)').props.placeholder).toBe('2026-10-08');
+    expect(screen.getByLabelText('Fecha deseada').props.placeholder).toBe('2026-10-08');
   });
 
   it('bloquea el envío mientras sube y limita a 5 imágenes', async () => {
