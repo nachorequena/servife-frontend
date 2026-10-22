@@ -14,6 +14,7 @@ import { AvisosScreen } from '../screens/compartidas/AvisosScreen';
 import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
+import { DetalleTrabajoScreen } from '../screens/prestador/DetalleTrabajoScreen';
 import { FiltrosProvider } from '../store/filtros';
 import { colores } from '../theme';
 import { iconoDeTab } from './iconos';
@@ -49,6 +50,9 @@ export function ClienteNavigator() {
         <Stack.Screen name="Valoracion" component={ValoracionScreen} options={{ title: 'Valorar' }} />
         <Stack.Screen name="TrabajosRealizados" options={{ title: 'Trabajos realizados' }}>
           {({ route }) => <TrabajosRealizadosScreen soloLectura uuidPrestador={route.params.uuidPrestador} />}
+        </Stack.Screen>
+        <Stack.Screen name="DetalleTrabajo" options={{ title: 'Trabajo' }}>
+          {() => <DetalleTrabajoScreen soloLectura />}
         </Stack.Screen>
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Avisos" component={AvisosScreen} options={{ title: 'Avisos' }} />
