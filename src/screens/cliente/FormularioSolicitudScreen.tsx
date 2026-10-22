@@ -1,46 +1,18 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { File } from 'expo-file-system';
-import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { subirImagen } from '../../api/archivos';
 import { obtenerDisponibilidad } from '../../api/disponibilidad';
 import { ApiError } from '../../api/errores';
 import { crearSolicitud } from '../../api/solicitudes';
-import { Button, Input, Logo } from '../../components';
+import { AdjuntosDeImagenes, Button, Input, Logo } from '../../components';
+import { useAdjuntosDeImagenes } from '../../hooks/useAdjuntosDeImagenes';
 import type { ClienteStackParams } from '../../navigation/tipos';
 import { useSesion } from '../../store/sesion';
-import { colores, espaciado, radios, tamanios, tipografia } from '../../theme';
-import { MENSAJE_DE_RED, mensajeDe } from '../../utils/errores';
-import { diaDeSemana, hoyEnArgentina, nombresDeDias } from '../../utils/formato';
-
-const MAXIMO_DE_IMAGENES = 5;
-const MAXIMO_DE_BYTES = 5 * 1024 * 1024;
-
-interface Adjunto {
-  clave: number;
-  uri: string;
-  mime: string;
-  nombre?: string;
-  estado: 'subiendo' | 'lista' | 'error';
-  uuid?: string;
-  /** Por qué falló la subida (estado 'error'). */
-  mensaje?: string;
-  /** Solo tiene sentido reintentar si falló la red o el servidor, no un 400/413. */
-  reintentable?: boolean;
-}
+import { colores, espaciado, tipografia } from '../../theme';
+import { mensajeDe } from '../../utils/errores';
+import { diaDeSemana, esFechaReal, hoyEnArgentina, nombresDeDias } from '../../utils/formato';
 
 interface Errores {
   fecha?: string;
@@ -52,14 +24,6 @@ interface Errores {
 }
 
 type Dias = { tipo: 'cargando' } | { tipo: 'listo'; dias: number[] } | { tipo: 'error'; mensaje: string };
-
-/** "AAAA-MM-DD" que además es una fecha real del calendario (descarta 2026-02-31). */
-function esFechaReal(fecha: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return false;
-  const [anio, mes, dia] = fecha.split('-').map(Number);
-  const f = new Date(Date.UTC(anio, mes - 1, dia));
-  return f.getUTCFullYear() === anio && f.getUTCMonth() === mes - 1 && f.getUTCDate() === dia;
-}
 
 function validarFecha(fecha: string, dias: number[]): string | undefined {
   if (!esFechaReal(fecha)) return 'Usá el formato AAAA-MM-DD';
@@ -80,11 +44,10 @@ export function FormularioSolicitudScreen() {
   const [hora, setHora] = useState('');
   const [direccion, setDireccion] = useState(sesion?.usuario.direccion ?? '');
   const [descripcion, setDescripcion] = useState('');
-  const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
   const [errores, setErrores] = useState<Errores>({});
   const [enviando, setEnviando] = useState(false);
-  const clave = useRef(0);
   const enCurso = useRef(false);
+  const imagenes = useAdjuntosDeImagenes((mensaje) => setErrores((e) => ({ ...e, imagenes: mensaje })));
 
   useEffect(() => {
     let vigente = true;
@@ -97,88 +60,23 @@ export function FormularioSolicitudScreen() {
     };
   }, [uuidPrestador, intento]);
 
-  const cambiarAdjunto = useCallback((k: number, cambios: Partial<Adjunto>) => {
-    setAdjuntos((actuales) => actuales.map((a) => (a.clave === k ? { ...a, ...cambios } : a)));
-  }, []);
-
-  const subir = useCallback(
-    async (adjunto: Pick<Adjunto, 'clave' | 'uri' | 'mime' | 'nombre'>) => {
-      cambiarAdjunto(adjunto.clave, { estado: 'subiendo', mensaje: undefined, reintentable: undefined });
-      try {
-        const archivo = await subirImagen(adjunto.uri, adjunto.mime, adjunto.nombre);
-        cambiarAdjunto(adjunto.clave, { estado: 'lista', uuid: archivo.uuid });
-      } catch (e) {
-        cambiarAdjunto(
-          adjunto.clave,
-          e instanceof ApiError
-            ? { estado: 'error', mensaje: e.errorDe('archivo') ?? e.message, reintentable: e.status >= 500 }
-            : { estado: 'error', mensaje: MENSAJE_DE_RED, reintentable: true },
-        );
-      }
-    },
-    [cambiarAdjunto],
-  );
-
-  async function elegirImagen() {
-    if (adjuntos.length >= MAXIMO_DE_IMAGENES) {
-      setErrores((e) => ({ ...e, imagenes: `Podés adjuntar hasta ${MAXIMO_DE_IMAGENES} imágenes.` }));
-      return;
-    }
-    let resultado: ImagePicker.ImagePickerResult;
-    try {
-      resultado = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.6,
-        allowsMultipleSelection: false,
-      });
-    } catch {
-      setErrores((e) => ({ ...e, imagenes: 'No pudimos abrir tus fotos.' }));
-      return;
-    }
-    const asset = resultado.canceled ? undefined : resultado.assets[0];
-    if (!asset) return;
-    // asset.fileSize es el de la foto original en Android; se sube la copia con quality 0.6, así que se mide esa.
-    if (new File(asset.uri).size > MAXIMO_DE_BYTES) {
-      setErrores((e) => ({ ...e, imagenes: 'La imagen pesa más de 5 MB. Elegí otra.' }));
-      return;
-    }
-    setErrores((e) => ({ ...e, imagenes: undefined }));
-    const nuevo: Adjunto = {
-      clave: ++clave.current,
-      uri: asset.uri,
-      mime: asset.mimeType ?? 'image/jpeg',
-      nombre: asset.fileName ?? undefined,
-      estado: 'subiendo',
-    };
-    setAdjuntos((actuales) => [...actuales, nuevo]);
-    void subir(nuevo);
-  }
-
   /** Edita un campo y limpia su error. */
   const editar = (campo: keyof Errores, poner: (valor: string) => void) => (valor: string) => {
     poner(valor);
     setErrores((e) => (e[campo] === undefined ? e : { ...e, [campo]: undefined }));
   };
 
-  const quitar = (k: number) => {
-    setAdjuntos((actuales) => actuales.filter((a) => a.clave !== k));
-    setErrores((e) => ({ ...e, imagenes: undefined }));
-  };
-
   const dias = disponibilidad.tipo === 'listo' ? disponibilidad.dias : [];
-  const subiendo = adjuntos.some((a) => a.estado === 'subiendo');
   const sinDias = disponibilidad.tipo === 'listo' && dias.length === 0;
-  const puedeEnviar = disponibilidad.tipo === 'listo' && !sinDias && !subiendo && !enviando;
+  const puedeEnviar = disponibilidad.tipo === 'listo' && !sinDias && !imagenes.subiendo && !enviando;
 
   async function enviar() {
-    if (enCurso.current || adjuntos.some((a) => a.estado === 'subiendo')) return;
+    if (enCurso.current || imagenes.subiendo) return;
     const locales: Errores = {
       fecha: validarFecha(fecha.trim(), dias),
       direccion: direccion.trim() === '' ? 'Es obligatoria.' : undefined,
       descripcion: descripcion.trim() === '' ? 'Es obligatoria.' : undefined,
-      imagenes: adjuntos.some((a) => a.estado === 'error')
-        ? 'Reintentá o quitá las imágenes que no se subieron.'
-        : undefined,
+      imagenes: imagenes.conError ? 'Reintentá o quitá las imágenes que no se subieron.' : undefined,
     };
     setErrores(locales);
     if (Object.values(locales).some((m) => m !== undefined)) return;
@@ -192,7 +90,7 @@ export function FormularioSolicitudScreen() {
         ...(hora.trim() !== '' && { horaPreferida: hora.trim() }),
         direccion: direccion.trim(),
         descripcion: descripcion.trim(),
-        ...(adjuntos.length > 0 && { imagenIds: adjuntos.flatMap((a) => (a.estado === 'lista' && a.uuid ? [a.uuid] : [])) }),
+        ...(imagenes.adjuntos.length > 0 && { imagenIds: imagenes.uuidsListos }),
       });
       navigation.popTo('Tabs', { screen: 'Historial', params: { aviso: 'Solicitud enviada.' } });
     } catch (e) {
@@ -275,49 +173,12 @@ export function FormularioSolicitudScreen() {
           error={errores.descripcion}
         />
 
-        <Pressable accessibilityRole="button" disabled={enviando} style={estilos.subida} onPress={elegirImagen}>
-          <Text style={estilos.subidaTexto}>Adjuntar imágenes</Text>
-          <Ionicons name="add-circle-outline" size={tamanios.icono} color={colores.tintaSecundaria} />
-        </Pressable>
-        {errores.imagenes !== undefined && <Text style={estilos.error}>{errores.imagenes}</Text>}
-
-        {adjuntos.length > 0 && (
-          <View style={estilos.miniaturas}>
-            {adjuntos.map((a, i) => (
-              <View key={a.clave} style={estilos.miniatura}>
-                <Image
-                  source={{ uri: a.uri }}
-                  style={estilos.imagen}
-                  accessibilityLabel={`Imagen ${i + 1}`}
-                  accessibilityIgnoresInvertColors
-                />
-                <Text style={estilos.estadoImagen}>
-                  {a.estado === 'subiendo' ? 'Subiendo…' : a.estado === 'lista' ? 'Lista' : (a.mensaje ?? 'No se subió')}
-                </Text>
-                <View style={estilos.accionesImagen}>
-                  {a.estado === 'error' && a.reintentable && (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Reintentar imagen ${i + 1}`}
-                      disabled={enviando}
-                      onPress={() => subir(a)}
-                    >
-                      <Text style={estilos.enlace}>Reintentar</Text>
-                    </Pressable>
-                  )}
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Quitar imagen ${i + 1}`}
-                    disabled={enviando}
-                    onPress={() => quitar(a.clave)}
-                  >
-                    <Text style={estilos.enlace}>Quitar</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        <AdjuntosDeImagenes
+          adjuntos={imagenes}
+          etiqueta="Adjuntar imágenes"
+          error={errores.imagenes}
+          deshabilitado={enviando}
+        />
 
         {errores.general !== undefined && <Text style={estilos.error}>{errores.general}</Text>}
         <View style={estilos.botones}>
@@ -342,20 +203,6 @@ const estilos = StyleSheet.create({
   },
   ayuda: { ...tipografia.cuerpo, color: colores.tintaSecundaria, marginTop: -espaciado.s, marginBottom: espaciado.m },
   reintento: { marginBottom: espaciado.m },
-  subida: {
-    backgroundColor: colores.tarjeta,
-    borderRadius: radios.input,
-    padding: espaciado.l,
-    alignItems: 'center',
-    marginBottom: espaciado.m,
-  },
-  subidaTexto: { ...tipografia.cuerpo, color: colores.tintaSecundaria, marginBottom: espaciado.xs },
-  miniaturas: { flexDirection: 'row', flexWrap: 'wrap', gap: espaciado.s, marginBottom: espaciado.m },
-  miniatura: { width: tamanios.miniatura, alignItems: 'center' },
-  imagen: { width: tamanios.miniatura, height: tamanios.miniatura, borderRadius: radios.input },
-  estadoImagen: { ...tipografia.globo, color: colores.tintaSecundaria, marginTop: espaciado.xs, textAlign: 'center' },
-  accionesImagen: { flexDirection: 'row', gap: espaciado.s },
-  enlace: { ...tipografia.cuerpo, color: colores.verdeOscuro, fontWeight: '700' },
   error: { ...tipografia.cuerpo, color: colores.tinta, marginBottom: espaciado.m },
   botones: { gap: espaciado.s },
 });
