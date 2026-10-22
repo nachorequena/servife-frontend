@@ -1,9 +1,13 @@
 import {
+  dateAFechaSola,
+  dateAHora,
   diaDeSemana,
+  fechaADate,
   formatearCentavos,
   formatearFecha,
   formatearFechaHora,
   formatearFechaSola,
+  horaADate,
   hoyEnArgentina,
   nombresDeDias,
   pesosACentavos,
@@ -101,4 +105,24 @@ describe('pesosACentavos', () => {
       expect(pesosACentavos(texto)).toBeNull();
     },
   );
+});
+
+describe('fecha y hora de los selectores', () => {
+  it('fechaADate y dateAFechaSola devuelven el mismo día', () => {
+    expect(dateAFechaSola(fechaADate('2026-10-09'))).toBe('2026-10-09');
+    expect(dateAFechaSola(fechaADate('2026-01-01'))).toBe('2026-01-01');
+    expect(dateAFechaSola(fechaADate('2026-12-31'))).toBe('2026-12-31');
+  });
+
+  it('dateAFechaSola usa el día local que vio el usuario, con ceros a la izquierda', () => {
+    expect(dateAFechaSola(new Date(2026, 2, 5, 23, 59))).toBe('2026-03-05');
+    expect(dateAFechaSola(new Date(2026, 2, 5, 0, 1))).toBe('2026-03-05');
+  });
+
+  it('dateAHora da HH:mm en 24 h y horaADate lo invierte', () => {
+    expect(dateAHora(new Date(2026, 9, 9, 14, 5))).toBe('14:05');
+    expect(dateAHora(new Date(2026, 9, 9, 0, 0))).toBe('00:00');
+    const d = horaADate('07:30');
+    expect([d.getHours(), d.getMinutes()]).toEqual([7, 30]);
+  });
 });
