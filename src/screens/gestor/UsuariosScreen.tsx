@@ -41,6 +41,8 @@ const NOMBRE_DE_VALIDACION = { PENDIENTE: 'pendiente de validación', APROBADO: 
 
 type Accion = 'SUSPENDER' | 'REACTIVAR' | 'ELIMINAR';
 
+const claveDe = (u: UsuarioAdmin) => u.uuid;
+
 /**
  * Usuarios · CU12 y sus extensiones CU15 a CU17 (D06) · E3, E4, E13, E14, E15. Sin maqueta (D10): lista
  * paginada con búsqueda (nombre, email o uuid) y filtros por rol y estado; cada tarjeta permite editar,
@@ -65,7 +67,7 @@ export function UsuariosScreen() {
     [rol, estado, texto],
   );
   const { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar, quitar } =
-    useListaPaginada(cargarPagina);
+    useListaPaginada(cargarPagina, claveDe);
 
   function buscar() {
     const limpio = busqueda.trim();
