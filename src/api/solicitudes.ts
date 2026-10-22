@@ -17,7 +17,15 @@ export type EstadoSolicitud =
   | 'FINALIZADA'
   | 'VALORADA';
 
-export type AccionSobreSolicitud = 'ACEPTAR' | 'RECHAZAR' | 'INICIAR' | 'FINALIZAR' | 'CANCELAR';
+/** CONFIRMAR_REALIZADO y NO_SE_PRESENTO son del cliente, desde la fecha deseada (D07, D34). */
+export type AccionSobreSolicitud =
+  | 'ACEPTAR'
+  | 'RECHAZAR'
+  | 'INICIAR'
+  | 'FINALIZAR'
+  | 'CANCELAR'
+  | 'CONFIRMAR_REALIZADO'
+  | 'NO_SE_PRESENTO';
 
 /** El teléfono solo viene en ACEPTADA, EN_CURSO, FINALIZADA y VALORADA. */
 export interface Parte {
@@ -45,6 +53,8 @@ export interface Solicitud {
   creadoEn: string;
   actualizadoEn: string;
   accionesDisponibles: AccionSobreSolicitud[];
+  /** Chat de la solicitud (E1, E2), creado junto con ella (D33). */
+  uuidChat: string | null;
 }
 
 export interface SolicitudEnLista {

@@ -14,13 +14,15 @@ const MAXIMO_MOTIVO = 255;
 
 type Decision = 'APROBAR' | 'RECHAZAR';
 
+const claveDe = (p: PrestadorPendiente) => p.uuid;
+
 /**
  * Validaciones pendientes · CU14 · E5 y E6. Sin maqueta propia: lista paginada con acentos lilas del
  * gestor. Aprobar y rechazar piden confirmación; el rechazo admite un motivo que le llega al prestador.
  */
 export function ValidacionesScreen() {
   const { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar, quitar } =
-    useListaPaginada(listarValidacionesPendientes);
+    useListaPaginada(listarValidacionesPendientes, claveDe);
   const [confirmando, setConfirmando] = useState<{ uuid: string; decision: Decision } | null>(null);
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
