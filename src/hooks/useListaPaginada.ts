@@ -8,7 +8,8 @@ const TAMANIO_PAGINA = 20;
 /**
  * Lista paginada genérica: carga, paginado sin duplicados, refresco (pull-to-refresh y al volver a la
  * pantalla, sin tapar la lista) y errores; un refresco que falla conserva la lista. Toda consulta nueva anula
- * a la anterior. Es la misma lógica que useListaDeSolicitudes y AvisosScreen, que pueden pasarse a este hook.
+ * a la anterior. La usan Mensajes, Trabajos realizados, Validaciones, Usuarios y useListaDeSolicitudes; AvisosScreen
+ * todavía tiene su propia copia.
  *
  * @param cargarPagina función de api/ que pide una página; tiene que ser estable (definida fuera del componente)
  * @param clave identifica cada ítem para no repetirlo entre páginas
@@ -113,5 +114,8 @@ export function useListaPaginada<T>(
 
   const reintentar = () => setReintento((n) => n + 1);
 
-  return { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar };
+  /** Saca un ítem ya resuelto sin esperar la recarga (por ejemplo, una validación aprobada). */
+  const quitar = (id: string) => setItems((actuales) => actuales.filter((item) => claveRef.current(item) !== id));
+
+  return { items, cargando, cargandoMas, refrescando, error, errorMas, errorAlActualizar, cargarMas, refrescar, reintentar, quitar };
 }

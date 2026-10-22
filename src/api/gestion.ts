@@ -30,16 +30,16 @@ export const cambiarEstadoDeUsuario = (uuid: string, cuerpo: unknown) =>
 export const eliminarUsuario = (uuid: string) =>
   pedir(`/admin/usuarios/${uuid}`, { metodo: 'DELETE' });
 
-/** Fila de E5. */
+/** Fila de E5. postuladoEn: alta o último cambio de rubro (la cola se ordena por ahí). */
 export interface PrestadorPendiente {
   uuid: string;
   nombreApellido: string;
   email: string;
   tipoServicio: TipoServicio;
-  creadoEn: string;
+  postuladoEn: string;
 }
 
-/** Cuerpo de E6. */
+/** Cuerpo de E6. El motivo se guarda siempre; al prestador solo le llega el de un rechazo. Máximo 255. */
 export interface DecisionDeValidacion {
   decision: 'APROBAR' | 'RECHAZAR';
   motivo?: string;
