@@ -8,6 +8,29 @@ import { PerfilPropioScreen } from '../../prestador/PerfilPropioScreen';
 import { MiCuenta } from '../MiCuenta';
 
 jest.mock('../../prestador/MiServicio', () => ({ MiServicio: () => null }));
+/** El calendario nativo no corre en Jest: se reemplaza por un campo de texto con la misma interfaz. */
+jest.mock('../../../components/SelectorDeFecha', () => ({
+  SelectorDeFecha: ({ etiqueta, value, onChange, maximo, inicial, onQuitar, error }: Record<string, string & ((v?: string) => void)>) => {
+    const React = require('react');
+    const { Pressable, Text, TextInput } = require('react-native');
+    return React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(TextInput, {
+        accessibilityLabel: etiqueta,
+        value,
+        onChangeText: onChange,
+        placeholder: `${inicial}|${maximo}`,
+      }),
+      value !== '' && onQuitar && React.createElement(Pressable, { onPress: onQuitar }, React.createElement(Text, null, 'Quitar fecha')),
+      error !== undefined && React.createElement(Text, null, error),
+    );
+  },
+}));
+jest.mock('../../../utils/formato', () => ({
+  ...jest.requireActual('../../../utils/formato'),
+  hoyEnArgentina: () => '2026-10-08',
+}));
 
 jest.mock('../../../api/identidad', () => ({
   actualizarMiUsuario: jest.fn(),
@@ -80,14 +103,33 @@ describe('MiCuenta', () => {
     expect(await screen.findByText('Datos guardados.')).toBeTruthy();
   });
 
-  it('rechaza una fecha con formato inválido sin llamar a A6', async () => {
+  it('la fecha de nacimiento abre en el año 2000 y no deja elegir hoy ni el futuro', async () => {
+    await render(<MiCuenta />);
+    expect(screen.getByLabelText('Fecha de nacimiento').props.placeholder).toBe('2000-01-01|2026-10-07');
+  });
+
+  it('Quitar fecha manda la fecha de nacimiento como null', async () => {
+    mockA6.mockResolvedValue({ ...cliente, fecNacimiento: null });
     await render(<MiCuenta />);
     const usuario = userEvent.setup();
-    await usuario.clear(screen.getByLabelText('Fecha de nacimiento'));
-    await usuario.type(screen.getByLabelText('Fecha de nacimiento'), '17/05/1990');
+    await usuario.press(screen.getByText('Quitar fecha'));
     await usuario.press(screen.getByRole('button', { name: 'Guardar cambios' }));
-    expect(screen.getByText('Usá el formato AAAA-MM-DD')).toBeTruthy();
-    expect(mockA6).not.toHaveBeenCalled();
+    expect(mockA6).toHaveBeenCalledWith({
+      nombreApellido: 'Ana Pérez',
+      telefono: '3425551234',
+      direccion: 'Calle 1',
+      fecNacimiento: null,
+    });
+  });
+
+  it('el error del backend en la fecha de nacimiento sale bajo el campo', async () => {
+    mockA6.mockRejectedValue(
+      new ApiError(400, 'VALIDACION', 'Datos inválidos', [{ campo: 'fecNacimiento', detalle: 'tiene que ser una fecha pasada' }]),
+    );
+    await render(<MiCuenta />);
+    const usuario = userEvent.setup();
+    await usuario.press(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(await screen.findByText('tiene que ser una fecha pasada')).toBeTruthy();
   });
 
   it('un error de red al guardar avisa y no toca la sesión', async () => {

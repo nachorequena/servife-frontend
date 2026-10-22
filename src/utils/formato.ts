@@ -138,3 +138,9 @@ export function horaADate(hora: string): Date {
 export function dateAHora(fecha: Date): string {
   return `${dosDigitos(fecha.getHours())}:${dosDigitos(fecha.getMinutes())}`;
 }
+
+/** "2026-10-08" → "2026-10-07". Se calcula con Date.UTC, sin depender de la zona del dispositivo. */
+export function diaAnterior(fecha: string): string {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return new Date(Date.UTC(anio, mes - 1, dia - 1)).toISOString().slice(0, 10);
+}
