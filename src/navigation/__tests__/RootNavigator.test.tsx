@@ -67,9 +67,9 @@ describe('navegación por rol', () => {
     }
   });
 
-  it('el gestor ve Dashboard, Validaciones y Perfil', async () => {
+  it('el gestor ve Dashboard, Validaciones, Usuarios, Servicios y Perfil', async () => {
     await entrarComo('GESTOR');
-    for (const tab of ['Dashboard', 'Validaciones', 'Perfil']) {
+    for (const tab of ['Dashboard', 'Validaciones', 'Usuarios', 'Servicios', 'Perfil']) {
       expect(await screen.findByRole('button', { name: new RegExp(`^${tab}`) })).toBeTruthy();
     }
   });

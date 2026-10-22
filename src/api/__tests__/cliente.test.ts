@@ -77,6 +77,39 @@ describe('cliente HTTP', () => {
     expect(obtenerAccessToken()).toBeNull();
   });
 
+  it('un 403 CUENTA_SUSPENDIDA cierra la sesión con el mensaje y relanza el error', async () => {
+    fetchMock.mockResolvedValueOnce(
+      respuesta(403, { status: 403, codigo: 'CUENTA_SUSPENDIDA', mensaje: 'Tu cuenta está suspendida.', errores: [] }),
+    );
+
+    await expect(pedir('/solicitudes')).rejects.toMatchObject({ codigo: 'CUENTA_SUSPENDIDA' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(alExpirar).toHaveBeenCalledWith('Tu cuenta está suspendida.');
+    expect(obtenerAccessToken()).toBeNull();
+  });
+
+  it('otro 403 (rol sin permiso) no cierra la sesión', async () => {
+    fetchMock.mockResolvedValueOnce(
+      respuesta(403, { status: 403, codigo: 'ACCESO_DENEGADO', mensaje: 'Tu rol no permite esta operación.', errores: [] }),
+    );
+
+    await expect(pedir('/admin/usuarios')).rejects.toMatchObject({ codigo: 'ACCESO_DENEGADO' });
+
+    expect(alExpirar).not.toHaveBeenCalled();
+    expect(obtenerAccessToken()).toBe('access-viejo');
+  });
+
+  it('un 403 de un endpoint público no cierra nada', async () => {
+    fetchMock.mockResolvedValueOnce(
+      respuesta(403, { status: 403, codigo: 'CUENTA_SUSPENDIDA', mensaje: 'Tu cuenta está suspendida.', errores: [] }),
+    );
+
+    await expect(pedir('/auth/login', { metodo: 'POST', cuerpo: {}, publico: true })).rejects.toBeInstanceOf(ApiError);
+
+    expect(alExpirar).not.toHaveBeenCalled();
+  });
+
   it('un refresh con error del servidor no borra la sesión', async () => {
     fetchMock
       .mockResolvedValueOnce(respuesta(401, error401))
