@@ -19,6 +19,29 @@ export function formatearFechaHora(isoUtc: string): string {
   }).format(new Date(isoUtc));
 }
 
+/**
+ * Cuánto pasó desde una fecha, contado en días de Argentina: "hoy", "ayer", "hace 3 días", "hace 2 semanas";
+ * más de 8 semanas, la fecha ("18/09/2026").
+ */
+export function haceCuanto(isoUtc: string, ahora: Date = new Date()): string {
+  const dia = (d: Date) => Date.parse(
+    new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_ARGENTINA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d),
+  );
+  const dias = Math.round((dia(ahora) - dia(new Date(isoUtc))) / 86_400_000);
+  if (dias <= 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  if (dias < 14) return `hace ${dias} días`;
+  if (dias < 56) return `hace ${Math.floor(dias / 7)} semanas`;
+  return formatearFecha(isoUtc);
+}
+
+/** Fecha de hoy para un saludo: "miércoles 22 de octubre" (hora de Argentina). */
+export function formatearFechaLarga(fecha: Date = new Date()): string {
+  return new Intl.DateTimeFormat(LOCALE, { timeZone: ZONA_ARGENTINA, weekday: 'long', day: 'numeric', month: 'long' })
+    .format(fecha)
+    .replace(',', '');
+}
+
 /** "2026-09-18T13:12:04Z" → "18/09/2026" (fecha en Argentina). */
 export function formatearFecha(isoUtc: string): string {
   return new Intl.DateTimeFormat(LOCALE, {
