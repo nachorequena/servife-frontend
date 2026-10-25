@@ -111,7 +111,7 @@ export function ValidacionesScreen() {
         refreshing={refrescando}
         onRefresh={refrescar}
         ListHeaderComponent={
-          errorAlActualizar ? <Text style={estilos.aviso}>No pudimos actualizar la lista. Deslizá para reintentar.</Text> : null
+          errorAlActualizar ? <Text style={estilos.aviso}>No pudimos actualizar la lista. Deslizá para reintentar.</Text> : undefined
         }
         ListEmptyComponent={<EstadoVacio icono="shield-checkmark-outline" mensaje="No hay prestadores pendientes de validación." />}
         ListFooterComponent={
@@ -119,7 +119,7 @@ export function ValidacionesScreen() {
             <EstadoVacio mensaje="No pudimos cargar más." accion={{ etiqueta: 'Reintentar', onPress: cargarMas }} />
           ) : cargandoMas ? (
             <ActivityIndicator color={colores.lila} />
-          ) : null
+          ) : undefined
         }
       />
     </View>

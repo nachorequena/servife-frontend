@@ -265,7 +265,7 @@ export function UsuariosScreen() {
           refreshing={refrescando}
           onRefresh={refrescar}
           ListHeaderComponent={
-            errorAlActualizar ? <Text style={estilos.alerta}>No pudimos actualizar la lista. Deslizá para reintentar.</Text> : null
+            errorAlActualizar ? <Text style={estilos.alerta}>No pudimos actualizar la lista. Deslizá para reintentar.</Text> : undefined
           }
           ListEmptyComponent={
             <EstadoVacio
@@ -279,7 +279,7 @@ export function UsuariosScreen() {
               <EstadoVacio mensaje="No pudimos cargar más." accion={{ etiqueta: 'Reintentar', onPress: cargarMas }} />
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.lila} />
-            ) : null
+            ) : undefined
           }
         />
       )}

@@ -129,7 +129,7 @@ export function AvisosScreen() {
           refreshing={refrescando}
           onRefresh={refrescar}
           ListHeaderComponent={
-            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar los avisos.</Text> : null
+            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar los avisos.</Text> : undefined
           }
           ListEmptyComponent={<EstadoVacio mensaje="No tenés avisos." />}
           ListFooterComponent={
@@ -140,7 +140,7 @@ export function AvisosScreen() {
               </View>
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.verde} />
-            ) : null
+            ) : undefined
           }
         />
       )}
