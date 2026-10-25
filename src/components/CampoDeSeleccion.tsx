@@ -1,6 +1,7 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { bordes, colores, espaciado, radios, tipografia } from '../theme';
+import { bordes, colores, espaciado, radios, tamanios, tipografia } from '../theme';
 
 interface Props {
   etiqueta: string;
@@ -20,11 +21,16 @@ export function CampoDeSeleccion({ etiqueta, valor, placeholder, onPress, error 
         accessibilityRole="button"
         accessibilityLabel={etiqueta}
         onPress={onPress}
-        style={estilos.campo}
+        style={[estilos.campo, error !== undefined && estilos.campoConError]}
       >
         <Text style={valor ? estilos.valor : estilos.placeholder}>{valor || placeholder}</Text>
       </Pressable>
-      {error !== undefined && <Text style={estilos.error}>{error}</Text>}
+      {error !== undefined && (
+        <View style={estilos.filaError}>
+          <Ionicons name="alert-circle" size={tamanios.iconoChico} color={colores.rojo} />
+          <Text style={estilos.error}>{error}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -42,6 +48,8 @@ const estilos = StyleSheet.create({
   },
   valor: { ...tipografia.cuerpo, color: colores.tinta },
   placeholder: { ...tipografia.cuerpo, color: colores.tintaSecundaria },
-  // TODO(D11): la maqueta no tiene color de error; hasta que se defina, el error se marca con texto.
-  error: { ...tipografia.cuerpo, color: colores.tinta, marginTop: espaciado.xs },
+  // Igual que Input (bloque A de diseño): el error se marca en rojo, con ícono y texto.
+  campoConError: { borderColor: colores.rojo },
+  filaError: { flexDirection: 'row', alignItems: 'center', gap: espaciado.xs, marginTop: espaciado.xs },
+  error: { ...tipografia.cuerpo, color: colores.rojo, flex: 1 },
 });
