@@ -4,7 +4,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ProveedorDeAvisosFlotantes, useAvisoFlotante } from '../AvisoFlotante';
 import { BotonFlotante } from '../BotonFlotante';
+import { colores } from '../../theme';
 import { Button } from '../Button';
+import { CampoDeSeleccion } from '../CampoDeSeleccion';
 import { Card } from '../Card';
 import { Dialogo } from '../Dialogo';
 import { Esqueleto } from '../Esqueleto';
@@ -73,6 +75,13 @@ describe('Input (bloque A)', () => {
   it('sin mostrarOcultar no hay ojo', async () => {
     await render(<Input etiqueta="Contraseña" secureTextEntry />);
     expect(screen.queryByRole('button', { name: 'Mostrar contraseña' })).toBeNull();
+  });
+
+  it('CampoDeSeleccion marca el error igual que Input', async () => {
+    await render(<CampoDeSeleccion etiqueta="Fecha" placeholder="Elegí una fecha" onPress={jest.fn()} error="Elegí una fecha." />);
+    expect(screen.getByText('Elegí una fecha.')).toBeOnTheScreen();
+    expect(screen.getByTestId('icono-alert-circle')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Fecha' })).toHaveStyle({ borderColor: colores.rojo });
   });
 });
 
