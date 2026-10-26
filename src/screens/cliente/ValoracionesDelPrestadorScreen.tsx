@@ -46,7 +46,7 @@ export function ValoracionesDelPrestadorScreen() {
           refreshing={refrescando}
           onRefresh={refrescar}
           ListHeaderComponent={
-            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar las valoraciones.</Text> : null
+            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar las valoraciones.</Text> : undefined
           }
           ListEmptyComponent={<EstadoVacio mensaje="Este prestador todavía no tiene valoraciones." />}
           ListFooterComponent={
@@ -57,7 +57,7 @@ export function ValoracionesDelPrestadorScreen() {
               </View>
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.verde} />
-            ) : null
+            ) : undefined
           }
         />
       )}

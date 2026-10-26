@@ -1,5 +1,5 @@
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -42,7 +42,7 @@ export function ChatScreen() {
   const montado = useRef(true);
   // KeyboardAvoidingView mide su posición contra el padre, sin el encabezado de la pila: subía de menos y en
   // Android el teclado tapaba el campo. Se le pasa dónde empieza la pantalla en la ventana.
-  const pantalla = useRef<View>(null);
+  const pantalla = useRef<ComponentRef<typeof View>>(null);
   const [desdeArriba, setDesdeArriba] = useState(0);
 
   useEffect(

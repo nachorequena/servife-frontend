@@ -87,7 +87,7 @@ export function TrabajosRealizadosScreen({ soloLectura, uuidPrestador }: Props) 
               </View>
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.verde} />
-            ) : null
+            ) : undefined
           }
         />
       )}

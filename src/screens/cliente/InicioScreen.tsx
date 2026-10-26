@@ -190,7 +190,7 @@ export function InicioScreen() {
               </View>
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.verde} />
-            ) : null
+            ) : undefined
           }
         />
       )}

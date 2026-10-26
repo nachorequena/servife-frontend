@@ -88,7 +88,7 @@ export function SolicitudesScreen() {
           refreshing={refrescando}
           onRefresh={refrescar}
           ListHeaderComponent={
-            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar la lista.</Text> : null
+            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar la lista.</Text> : undefined
           }
           ListEmptyComponent={
             <EstadoVacio
@@ -105,7 +105,7 @@ export function SolicitudesScreen() {
               </View>
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.verde} />
-            ) : null
+            ) : undefined
           }
         />
       )}

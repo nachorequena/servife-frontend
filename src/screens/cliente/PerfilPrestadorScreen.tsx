@@ -129,7 +129,7 @@ function Perfil({ prestador: p }: { prestador: PrestadorDetalle }) {
             </View>
           ) : cargandoMas ? (
             <ActivityIndicator color={colores.verde} style={estilos.cargandoTrabajos} />
-          ) : null
+          ) : undefined
         }
       />
       <View style={[estilos.pie, { paddingBottom: Math.max(bottom, espaciado.m) }]}>

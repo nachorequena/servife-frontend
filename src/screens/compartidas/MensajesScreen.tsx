@@ -42,7 +42,7 @@ export function MensajesScreen() {
           refreshing={refrescando}
           onRefresh={refrescar}
           ListHeaderComponent={
-            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar los mensajes.</Text> : null
+            errorAlActualizar ? <Text style={estilos.textoError}>No pudimos actualizar los mensajes.</Text> : undefined
           }
           ListEmptyComponent={
             <EstadoVacio mensaje="Todavía no tenés conversaciones. Cada solicitud tiene su chat." />
@@ -55,7 +55,7 @@ export function MensajesScreen() {
               </View>
             ) : cargandoMas ? (
               <ActivityIndicator color={colores.verde} />
-            ) : null
+            ) : undefined
           }
         />
       )}
