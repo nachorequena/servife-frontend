@@ -8,6 +8,8 @@ interface Props {
   titulo: string;
   mensaje?: string;
   etiquetaConfirmar: string;
+  /** Por defecto "Cancelar". */
+  etiquetaCancelar?: string;
   /** Acción destructiva (dar de baja, rechazar): el botón de confirmar va en rojo. */
   peligro?: boolean;
   /** Mientras se envía, los dos botones quedan deshabilitados. */
@@ -17,7 +19,17 @@ interface Props {
 }
 
 /** Diálogo centrado para confirmar una acción ("¿Dar de baja a Laura?"). Atrás de Android cancela. */
-export function Dialogo({ visible, titulo, mensaje, etiquetaConfirmar, peligro = false, enviando = false, alConfirmar, alCancelar }: Props) {
+export function Dialogo({
+  visible,
+  titulo,
+  mensaje,
+  etiquetaConfirmar,
+  etiquetaCancelar = 'Cancelar',
+  peligro = false,
+  enviando = false,
+  alConfirmar,
+  alCancelar,
+}: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={alCancelar} statusBarTranslucent>
       <View style={estilos.velo}>
@@ -27,7 +39,7 @@ export function Dialogo({ visible, titulo, mensaje, etiquetaConfirmar, peligro =
           </Text>
           {mensaje !== undefined && <Text style={estilos.mensaje}>{mensaje}</Text>}
           <View style={estilos.acciones}>
-            <Button etiqueta="Cancelar" variante="contorno" tamanio="chico" ancho="contenido" onPress={alCancelar} deshabilitado={enviando} />
+            <Button etiqueta={etiquetaCancelar} variante="contorno" tamanio="chico" ancho="contenido" onPress={alCancelar} deshabilitado={enviando} />
             <Button
               etiqueta={etiquetaConfirmar}
               variante={peligro ? 'peligro' : 'primario'}
