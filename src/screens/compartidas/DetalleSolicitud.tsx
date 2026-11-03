@@ -11,6 +11,7 @@ import {
 } from '../../api/solicitudes';
 import { Button, EtiquetaDeEstado, ImagenProtegida, Input } from '../../components';
 import { useSesion } from '../../store/sesion';
+import { AvisoDeValoracion } from '../cliente/AvisoDeValoracion';
 import { colores, espaciado, radios, tamanios, tipografia } from '../../theme';
 import { mensajeDe } from '../../utils/errores';
 import { formatearCentavos, formatearFechaSola, pesosACentavos } from '../../utils/formato';
@@ -73,6 +74,8 @@ export function DetalleSolicitud({
   const [enviando, setEnviando] = useState(false);
   const [errorDeAccion, setErrorDeAccion] = useState<string | undefined>();
   const [listo, setListo] = useState(false);
+  const [avisoDeValoracion, setAvisoDeValoracion] = useState(false);
+  const avisoDeValoracionMostrado = useRef(false);
   const pedido = useRef(0);
   const enVuelo = useRef(false);
   const primerFoco = useRef(true);
@@ -126,6 +129,14 @@ export function DetalleSolicitud({
     accionInicialAplicada.current = true;
     if (solicitud.accionesDisponibles.includes(accionInicial)) abrir(accionInicial);
   }, [solicitud, accionInicial]);
+
+  // Aviso de valoración (porción 3, D07): una vez por visita, cuando el cliente ve la solicitud FINALIZADA
+  // (al abrirla o al confirmar que se realizó). Al volver de Valoracion con "Más tarde" no vuelve a salir.
+  useEffect(() => {
+    if (sesion?.rol !== 'CLIENTE' || solicitud?.estado !== 'FINALIZADA' || avisoDeValoracionMostrado.current) return;
+    avisoDeValoracionMostrado.current = true;
+    setAvisoDeValoracion(true);
+  }, [sesion?.rol, solicitud?.estado]);
 
   const abrir = (a: AccionSobreSolicitud) => {
     setAccion(a);
@@ -262,6 +273,17 @@ export function DetalleSolicitud({
         <Button
           etiqueta="Valorar el servicio"
           onPress={() => navigation.navigate('Valoracion', { uuidSolicitud: solicitud.uuid })}
+        />
+      )}
+      {esCliente && (
+        <AvisoDeValoracion
+          visible={avisoDeValoracion && solicitud.estado === 'FINALIZADA'}
+          nombrePrestador={solicitud.prestador.nombreApellido}
+          alValorar={() => {
+            setAvisoDeValoracion(false);
+            navigation.navigate('Valoracion', { uuidSolicitud: solicitud.uuid });
+          }}
+          alPosponer={() => setAvisoDeValoracion(false)}
         />
       )}
 
