@@ -64,6 +64,17 @@ export function HistorialScreen() {
                 <Text style={estilos.nombre}>{item.contraparte.nombreApellido}</Text>
                 <Text style={estilos.rubro}>{item.tipoServicio.nombre}</Text>
                 <EtiquetaDeEstado estado={item.estado} />
+                {/* Valoración pospuesta (D07): FINALIZADA es "terminada y sin valorar"; VALORADA ya no la ofrece. */}
+                {item.estado === 'FINALIZADA' && (
+                  <View style={estilos.valorar}>
+                    <Button
+                      etiqueta="Valorar"
+                      tamanio="chico"
+                      ancho="contenido"
+                      onPress={() => navigation.navigate('Valoracion', { uuidSolicitud: item.uuid })}
+                    />
+                  </View>
+                )}
               </View>
               <Text style={estilos.rubro}>{formatearFechaSola(item.fechaDeseada)}</Text>
             </Card>
@@ -108,6 +119,7 @@ const estilos = StyleSheet.create({
   error: { padding: espaciado.l, gap: espaciado.m },
   textoError: { ...tipografia.cuerpo, color: colores.tinta, textAlign: 'center' },
   datos: { flex: 1, gap: espaciado.xs },
+  valorar: { alignSelf: 'flex-start', marginTop: espaciado.xs },
   nombre: { ...tipografia.cuerpo, fontWeight: '700', color: colores.tinta },
   rubro: { ...tipografia.cuerpo, color: colores.tintaSecundaria },
 });

@@ -81,6 +81,16 @@ describe('HistorialScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('DetalleSolicitud', { uuidSolicitud: 's2' });
   });
 
+  it('Valorar sale solo en las FINALIZADAS y lleva a la valoración (D07)', async () => {
+    mockListar.mockResolvedValue(pagina([item(1, 'FINALIZADA'), item(2, 'VALORADA'), item(3, 'EN_CURSO')]));
+    await render(<HistorialScreen />);
+    await screen.findByText('Prestador 1');
+    expect(screen.getAllByText('Valorar')).toHaveLength(1);
+    await fireEvent.press(screen.getByText('Valorar'));
+    expect(mockNavigate).toHaveBeenCalledWith('Valoracion', { uuidSolicitud: 's1' });
+    expect(mockNavigate).not.toHaveBeenCalledWith('DetalleSolicitud', expect.anything());
+  });
+
   it('sin solicitudes muestra el estado vacío', async () => {
     await render(<HistorialScreen />);
     expect(await screen.findByText('Todavía no pediste ningún servicio.')).toBeOnTheScreen();
