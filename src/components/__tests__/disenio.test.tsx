@@ -159,6 +159,16 @@ describe('HojaInferior y Dialogo', () => {
     expect(screen.getByRole('button', { name: 'Dar de baja' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
   });
+
+  it('el diálogo acepta otra etiqueta para cancelar', async () => {
+    const cancelar = jest.fn();
+    await render(
+      <Dialogo visible titulo="¿Valorar?" etiquetaConfirmar="Valorar" etiquetaCancelar="Más tarde" alConfirmar={jest.fn()} alCancelar={cancelar} />,
+    );
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'Más tarde' }));
+    expect(cancelar).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('Esqueleto y BotonFlotante', () => {

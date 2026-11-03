@@ -245,6 +245,43 @@ describe('DetalleSolicitud', () => {
     await waitFor(() => expect(mockCambiar).toHaveBeenCalledWith('s1', { accion }));
   });
 
+  it('al cliente con la solicitud FINALIZADA le sale el aviso de valoración y Valorar lo lleva a valorar', async () => {
+    await abrir(base({ estado: 'FINALIZADA' }));
+    expect(screen.getByText('¿Querés valorar el servicio?')).toBeOnTheScreen();
+    expect(screen.getByText(/Terminó el trabajo con Pablo Prestador/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Valorar'));
+    expect(mockNavigate).toHaveBeenCalledWith('Valoracion', { uuidSolicitud: 's1' });
+    expect(screen.queryByText('¿Querés valorar el servicio?')).toBeNull();
+  });
+
+  it('Más tarde cierra el aviso sin navegar y deja Valorar el servicio en el detalle', async () => {
+    await abrir(base({ estado: 'FINALIZADA' }));
+    await fireEvent.press(screen.getByText('Más tarde'));
+    expect(screen.queryByText('¿Querés valorar el servicio?')).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByText('Valorar el servicio')).toBeOnTheScreen();
+  });
+
+  it('el aviso sale cuando el cliente confirma que el servicio se realizó', async () => {
+    await abrir(con(['CONFIRMAR_REALIZADO']));
+    expect(screen.queryByText('¿Querés valorar el servicio?')).toBeNull();
+    await fireEvent.press(screen.getByText('Se realizó el servicio'));
+    mockCambiar.mockResolvedValue(base({ estado: 'FINALIZADA' }));
+    await fireEvent.press(screen.getByText('Confirmar'));
+    expect(await screen.findByText('¿Querés valorar el servicio?')).toBeOnTheScreen();
+  });
+
+  it('el aviso no sale al prestador ni con la solicitud ya valorada', async () => {
+    mockRol = 'PRESTADOR';
+    await abrir(base({ estado: 'FINALIZADA' }));
+    expect(screen.queryByText('¿Querés valorar el servicio?')).toBeNull();
+    mockRol = 'CLIENTE';
+    mockObtener.mockResolvedValue(base({ estado: 'VALORADA' }));
+    await render(<DetalleSolicitud uuidSolicitud="s2" />);
+    await screen.findByText('Plomero');
+    expect(screen.queryByText('¿Querés valorar el servicio?')).toBeNull();
+  });
+
   it('el cliente con la solicitud FINALIZADA ve Valorar el servicio y va a la valoración', async () => {
     await abrir(base({ estado: 'FINALIZADA' }));
     await fireEvent.press(screen.getByText('Valorar el servicio'));
