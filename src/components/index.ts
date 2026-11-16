@@ -13,7 +13,7 @@ export { Dialogo } from './Dialogo';
 export { EstadoVacio } from './EstadoVacio';
 export { Esqueleto } from './Esqueleto';
 export { Etiqueta, type TonoDeEtiqueta } from './Etiqueta';
-export { EtiquetaDeEstado } from './EtiquetaDeEstado';
+export { EtiquetaDeEstado, TEXTOS_DE_ESTADO } from './EtiquetaDeEstado';
 export { HojaInferior } from './HojaInferior';
 export { ImagenProtegida } from './ImagenProtegida';
 export { Input } from './Input';

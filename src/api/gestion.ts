@@ -163,3 +163,43 @@ export interface Metricas {
 
 /** E9 · GET /admin/metricas · CU12 · Gestor. Contadores del dashboard, sin incidencias (D05). */
 export const obtenerMetricas = () => pedir<Metricas>('/admin/metricas');
+
+/** Una barra de un gráfico: nombre (estado, cliente o prestador) y cantidad de solicitudes. */
+export interface ConteoPorNombre {
+  nombre: string;
+  cantidad: number;
+}
+
+/** Solicitudes de un mes (mes "AAAA-MM", hora de Argentina). Los meses vacíos vienen en 0. */
+export interface ConteoPorMes {
+  mes: string;
+  cantidad: number;
+}
+
+/** Trabajo por tipo de servicio: solicitudes recibidas y cuántas quedaron realizadas (FINALIZADA o VALORADA). */
+export interface ConteoPorServicio {
+  servicio: string;
+  solicitudes: number;
+  realizados: number;
+}
+
+/** Período de los gráficos ("AAAA-MM-DD"). Sin fechas, el backend usa los últimos 6 meses. */
+export interface Periodo {
+  desde?: string;
+  hasta?: string;
+}
+
+/** Respuesta de E9b. porEstado viene en el orden de la máquina de estados, solo con los estados que tienen solicitudes. */
+export interface MetricasDetalle {
+  desde: string;
+  hasta: string;
+  totalSolicitudes: number;
+  porServicio: ConteoPorServicio[];
+  porEstado: ConteoPorNombre[];
+  porMes: ConteoPorMes[];
+  topPrestadores: ConteoPorNombre[];
+}
+
+/** E9b · GET /admin/metricas/detalle · CU12 · Gestor. Gráficos del dashboard para un período (máximo 24 meses). */
+export const obtenerMetricasDetalle = (periodo: Periodo = {}) =>
+  pedir<MetricasDetalle>('/admin/metricas/detalle', { consulta: { ...periodo } });

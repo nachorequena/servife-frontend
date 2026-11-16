@@ -3,7 +3,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { EstadoSolicitud } from '../api/solicitudes';
 import { colores, espaciado, radios, tipografia } from '../theme';
 
-const TEXTOS: Record<EstadoSolicitud, string> = {
+/** Nombre de cada estado para mostrar (píldora, gráficos de los dashboards). */
+export const TEXTOS_DE_ESTADO: Record<EstadoSolicitud, string> = {
   PENDIENTE: 'Pendiente',
   ACEPTADA: 'Aceptada',
   EN_CURSO: 'En curso',
@@ -27,7 +28,7 @@ const FONDOS: Record<EstadoSolicitud, string> = {
 export function EtiquetaDeEstado({ estado }: { estado: EstadoSolicitud }) {
   return (
     <View style={[estilos.pill, { backgroundColor: FONDOS[estado] }]}>
-      <Text style={estilos.texto}>{TEXTOS[estado]}</Text>
+      <Text style={estilos.texto}>{TEXTOS_DE_ESTADO[estado]}</Text>
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import { BarrasHorizontales, GraficoPorMes, etiquetaDeMes } from '../graficos';
+import { BarrasHorizontales, GraficoPorMes, desdeHaceMeses, etiquetaDeMes } from '../graficos';
 
 describe('BarrasHorizontales', () => {
   it('muestra cada fila con su valor y detalle, legible sin color', async () => {
@@ -47,5 +47,13 @@ describe('GraficoPorMes', () => {
   it('etiquetaDeMes agrega el año corto cuando se pide', async () => {
     expect(etiquetaDeMes('2026-12')).toBe('dic');
     expect(etiquetaDeMes('2026-01', true)).toBe('ene 26');
+  });
+});
+
+describe('desdeHaceMeses', () => {
+  it('cuenta el mes actual y cruza de año', () => {
+    expect(desdeHaceMeses(6, '2026-11-16')).toBe('2026-06-01');
+    expect(desdeHaceMeses(3, '2026-02-28')).toBe('2025-12-01');
+    expect(desdeHaceMeses(12, '2026-01-01')).toBe('2025-02-01');
   });
 });
