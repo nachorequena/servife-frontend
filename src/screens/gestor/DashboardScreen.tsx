@@ -1,15 +1,13 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { listarValidacionesPendientes, obtenerMetricas, type Metricas, type PrestadorPendiente } from '../../api/gestion';
-import { Avatar, Button, Card, EstadoVacio, Esqueleto, Etiqueta } from '../../components';
-import type { NombreDeIcono } from '../../navigation/iconos';
+import { Avatar, Button, Card, Contador, EstadoVacio, Esqueleto, Etiqueta } from '../../components';
 import type { GestorTabsParams } from '../../navigation/tipos';
 import { useSesion } from '../../store/sesion';
-import { bordes, colores, espaciado, radios, tamanios, tipografia } from '../../theme';
+import { colores, espaciado, radios, tamanios, tipografia } from '../../theme';
 import { formatearFechaLarga, haceCuanto } from '../../utils/formato';
 
 /** Cuántas validaciones pendientes muestra el dashboard; el resto está en la pestaña Validaciones. */
@@ -147,36 +145,6 @@ export function DashboardScreen() {
   );
 }
 
-interface PropsDeContador {
-  icono: NombreDeIcono;
-  numero: number;
-  etiqueta: string;
-  destacado?: boolean;
-  onPress?: () => void;
-}
-
-/** Tarjeta de un contador: ícono, número grande y texto chico. Si se toca, lleva a la lista correspondiente. */
-function Contador({ icono, numero, etiqueta, destacado = false, onPress }: PropsDeContador) {
-  const contenido = (
-    <>
-      <View style={[estilos.icono, destacado && estilos.iconoDestacado]}>
-        <Ionicons name={icono} size={tamanios.icono} color={destacado ? colores.advertencia : colores.lilaTexto} />
-      </View>
-      <Text style={estilos.numero}>{numero}</Text>
-      <Text style={estilos.etiqueta}>{etiqueta}</Text>
-    </>
-  );
-  return onPress ? (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${etiqueta}: ${numero}`} onPress={onPress} style={estilos.contador}>
-      {contenido}
-    </Pressable>
-  ) : (
-    <View style={estilos.contador} accessible accessibilityLabel={`${etiqueta}: ${numero}`}>
-      {contenido}
-    </View>
-  );
-}
-
 const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colores.fondo },
   contenedor: { padding: espaciado.l, gap: espaciado.m },
@@ -186,26 +154,6 @@ const estilos = StyleSheet.create({
   alerta: { ...tipografia.cuerpo, color: colores.rojo },
   contadores: { flexDirection: 'row', gap: espaciado.s },
   esqueleto: { flex: 1 },
-  contador: {
-    flex: 1,
-    backgroundColor: colores.blanco,
-    borderRadius: radios.tarjeta,
-    borderWidth: bordes.fino,
-    borderColor: colores.bordeSuave,
-    padding: espaciado.m,
-    gap: espaciado.xs,
-  },
-  icono: {
-    width: tamanios.avatarChico,
-    height: tamanios.avatarChico,
-    borderRadius: radios.pill,
-    backgroundColor: colores.lilaClaro,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconoDestacado: { backgroundColor: colores.advertenciaClara },
-  numero: { ...tipografia.titulo, color: colores.tinta },
-  etiqueta: { ...tipografia.etiqueta, color: colores.tintaSecundaria },
   filaSeccion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: espaciado.s },
   seccion: { ...tipografia.seccion, color: colores.tinta },
   datos: { flex: 1 },

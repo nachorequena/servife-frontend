@@ -7,6 +7,7 @@ export { Button } from './Button';
 export { Campanita } from './Campanita';
 export { Card } from './Card';
 export { Chip } from './Chip';
+export { Contador } from './Contador';
 export { CerrarSesion } from './CerrarSesion';
 export { Dialogo } from './Dialogo';
 export { EstadoVacio } from './EstadoVacio';
