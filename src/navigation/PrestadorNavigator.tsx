@@ -7,6 +7,7 @@ import { ChatScreen } from '../screens/compartidas/ChatScreen';
 import { DetalleSolicitudDeRuta } from '../screens/compartidas/DetalleSolicitud';
 import { MensajesScreen } from '../screens/compartidas/MensajesScreen';
 import { TrabajosRealizadosScreen } from '../screens/compartidas/TrabajosRealizadosScreen';
+import { DashboardPrestadorScreen } from '../screens/prestador/DashboardPrestadorScreen';
 import { DetalleTrabajoScreen } from '../screens/prestador/DetalleTrabajoScreen';
 import { NuevoTrabajoScreen } from '../screens/prestador/NuevoTrabajoScreen';
 import { DocumentosScreen } from '../screens/prestador/DocumentosScreen';
@@ -20,10 +21,11 @@ import type { PrestadorStackParams, PrestadorTabsParams } from './tipos';
 const Tab = createBottomTabNavigator<PrestadorTabsParams>();
 const Stack = createNativeStackNavigator<PrestadorStackParams>();
 
-/** Tabs del prestador (D04): Solicitudes, Mensajes, Trabajos, Perfil. */
+/** Tabs del prestador (D04): Dashboard (sus números, E16), Solicitudes, Mensajes, Trabajos, Perfil. */
 function PrestadorTabs() {
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: colores.verde, headerRight: () => <Campanita /> }}>
+      <Tab.Screen name="Dashboard" component={DashboardPrestadorScreen} options={{ tabBarIcon: iconoDeTab('stats-chart') }} />
       <Tab.Screen name="Solicitudes" component={SolicitudesScreen} options={{ tabBarIcon: iconoDeTab('clipboard') }} />
       <Tab.Screen name="Mensajes" component={MensajesScreen} options={{ tabBarIcon: iconoDeTab('chatbubbles') }} />
       <Tab.Screen name="Trabajos" options={{ tabBarIcon: iconoDeTab('briefcase') }}>

@@ -38,6 +38,7 @@ export type ClienteStackParams = {
 };
 
 export type PrestadorTabsParams = {
+  Dashboard: undefined;
   Solicitudes: undefined;
   Mensajes: undefined;
   Trabajos: undefined;

@@ -203,3 +203,19 @@ export interface MetricasDetalle {
 /** E9b · GET /admin/metricas/detalle · CU12 · Gestor. Gráficos del dashboard para un período (máximo 24 meses). */
 export const obtenerMetricasDetalle = (periodo: Periodo = {}) =>
   pedir<MetricasDetalle>('/admin/metricas/detalle', { consulta: { ...periodo } });
+
+/** Respuesta de E16. porCliente: los 5 clientes con más solicitudes; valoracionPromedio null si todavía no tiene. */
+export interface MetricasDePrestador {
+  desde: string;
+  hasta: string;
+  totalSolicitudes: number;
+  porEstado: ConteoPorNombre[];
+  porCliente: ConteoPorNombre[];
+  porServicio: ConteoPorServicio[];
+  porMes: ConteoPorMes[];
+  valoracionPromedio: number | null;
+}
+
+/** E16 · GET /prestadores/me/metricas · Prestador. Su dashboard: solo sus solicitudes del período (máximo 24 meses). */
+export const obtenerMisMetricas = (periodo: Periodo = {}) =>
+  pedir<MetricasDePrestador>('/prestadores/me/metricas', { consulta: { ...periodo } });
