@@ -23,6 +23,8 @@ interface Props {
   icono?: NombreDeIcono;
   /** Pisa el ancho de la variante: completo (todo el ancho) o contenido (lo que ocupa el texto). */
   ancho?: 'completo' | 'contenido';
+  /** Texto para lectores de pantalla cuando la etiqueta sola es ambigua (ej. varios "Editar" en una lista). */
+  descripcion?: string;
 }
 
 const COLOR_DE_TEXTO: Record<Variante, string> = {
@@ -42,13 +44,14 @@ export function Button({
   tamanio = 'normal',
   icono,
   ancho,
+  descripcion,
 }: Props) {
   const chico = tamanio === 'chico';
   const color = COLOR_DE_TEXTO[variante];
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={etiqueta}
+      accessibilityLabel={descripcion ?? etiqueta}
       accessibilityState={{ disabled: deshabilitado }}
       disabled={deshabilitado}
       onPress={onPress}

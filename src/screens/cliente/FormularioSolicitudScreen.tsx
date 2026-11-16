@@ -1,16 +1,27 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { listarMisDirecciones, principalDe, type DireccionGuardada } from '../../api/direcciones';
 import { obtenerDisponibilidad } from '../../api/disponibilidad';
 import { ApiError } from '../../api/errores';
 import { crearSolicitud } from '../../api/solicitudes';
-import { AdjuntosDeImagenes, Button, Input, Logo, SelectorDeFecha, SelectorDeHora } from '../../components';
+import {
+  AdjuntosDeImagenes,
+  Button,
+  HojaInferior,
+  Input,
+  Logo,
+  SelectorDeFecha,
+  SelectorDeHora,
+} from '../../components';
+import { CampoDeSeleccion } from '../../components/CampoDeSeleccion';
 import { useAdjuntosDeImagenes } from '../../hooks/useAdjuntosDeImagenes';
 import type { ClienteStackParams } from '../../navigation/tipos';
 import { useSesion } from '../../store/sesion';
-import { colores, espaciado, tipografia } from '../../theme';
+import { bordes, colores, espaciado, tamanios, tipografia } from '../../theme';
 import { mensajeDe } from '../../utils/errores';
 import { diaDeSemana, hoyEnArgentina, nombresDeDias } from '../../utils/formato';
 
@@ -32,7 +43,14 @@ function validarFecha(fecha: string, dias: number[]): string | undefined {
   return undefined;
 }
 
-/** CU06 · Solicitar servicio (C1, D7, C5). Sin botón de chat (D03). */
+/** Opción del desplegable para escribir una dirección que no está guardada. */
+const OTRA_DIRECCION = 'otra';
+
+/**
+ * CU06 · Solicitar servicio (C1, D7, C5). Sin botón de chat (D03). La dirección viene precargada con la
+ * principal del cliente; si tiene dos o más guardadas (A10) se elige de un desplegable, con "Otra dirección…"
+ * para escribir una a mano. A C1 siempre viaja el texto: la solicitud guarda la foto del momento.
+ */
 export function FormularioSolicitudScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ClienteStackParams>>();
   const { uuidPrestador } = useRoute<RouteProp<ClienteStackParams, 'FormularioSolicitud'>>().params;
@@ -43,6 +61,10 @@ export function FormularioSolicitudScreen() {
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
   const [direccion, setDireccion] = useState(sesion?.usuario.direccion ?? '');
+  // Direcciones guardadas (A10): con dos o más se elige de un desplegable; "Otra" habilita escribir una.
+  const [guardadas, setGuardadas] = useState<DireccionGuardada[]>([]);
+  const [elegida, setElegida] = useState<string | typeof OTRA_DIRECCION | null>(null);
+  const [eligiendo, setEligiendo] = useState(false);
   const [descripcion, setDescripcion] = useState('');
   const [errores, setErrores] = useState<Errores>({});
   const [enviando, setEnviando] = useState(false);
@@ -59,6 +81,41 @@ export function FormularioSolicitudScreen() {
       vigente = false;
     };
   }, [uuidPrestador, intento]);
+
+  useEffect(() => {
+    let vigente = true;
+    listarMisDirecciones()
+      .then((lista) => {
+        if (!vigente) return;
+        setGuardadas(lista);
+        const principal = principalDe(lista);
+        if (principal) {
+          setElegida(principal.uuid);
+          setDireccion(principal.direccion);
+        }
+      })
+      // Sin la lista se usa la dirección de la sesión en el campo de texto, como antes.
+      .catch(() => undefined);
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
+  const conDesplegable = guardadas.length >= 2;
+  const escribeOtra = !conDesplegable || elegida === OTRA_DIRECCION;
+  const opcionElegida = guardadas.find((d) => d.uuid === elegida);
+
+  function elegir(opcion: DireccionGuardada | typeof OTRA_DIRECCION) {
+    setEligiendo(false);
+    setErrores((e) => (e.direccion === undefined ? e : { ...e, direccion: undefined }));
+    if (opcion === OTRA_DIRECCION) {
+      setElegida(OTRA_DIRECCION);
+      setDireccion('');
+    } else {
+      setElegida(opcion.uuid);
+      setDireccion(opcion.direccion);
+    }
+  }
 
   /** Edita un campo y limpia su error. */
   const editar = (campo: keyof Errores, poner: (valor: string) => void) => (valor: string) => {
@@ -149,12 +206,44 @@ export function FormularioSolicitudScreen() {
         )}
 
         <SelectorDeHora etiqueta="Hora preferida" value={hora} onChange={editar('hora', setHora)} error={errores.hora} />
-        <Input
-          etiqueta="Dirección"
-          value={direccion}
-          onChangeText={editar('direccion', setDireccion)}
-          error={errores.direccion}
-        />
+        {conDesplegable && (
+          <CampoDeSeleccion
+            etiqueta="Dirección"
+            valor={
+              opcionElegida ? `${opcionElegida.alias} · ${opcionElegida.direccion}` : elegida === OTRA_DIRECCION ? 'Otra dirección' : ''
+            }
+            placeholder="Elegí una dirección"
+            onPress={() => setEligiendo(true)}
+            error={escribeOtra ? undefined : errores.direccion}
+          />
+        )}
+        {escribeOtra && (
+          <Input
+            etiqueta={conDesplegable ? 'Otra dirección' : 'Dirección'}
+            value={direccion}
+            onChangeText={editar('direccion', setDireccion)}
+            error={errores.direccion}
+          />
+        )}
+        {conDesplegable && (
+          <HojaInferior visible={eligiendo} alCerrar={() => setEligiendo(false)} titulo="¿Dónde es el trabajo?">
+            {guardadas.map((d) => (
+              <OpcionDeDireccion
+                key={d.uuid}
+                titulo={d.principal ? `${d.alias} (principal)` : d.alias}
+                detalle={d.direccion}
+                elegida={elegida === d.uuid}
+                onPress={() => elegir(d)}
+              />
+            ))}
+            <OpcionDeDireccion
+              titulo="Otra dirección…"
+              detalle="Escribila a mano para este pedido"
+              elegida={elegida === OTRA_DIRECCION}
+              onPress={() => elegir(OTRA_DIRECCION)}
+            />
+          </HojaInferior>
+        )}
         <Input
           etiqueta="Descripción del trabajo"
           value={descripcion}
@@ -182,8 +271,46 @@ export function FormularioSolicitudScreen() {
   );
 }
 
+interface PropsDeOpcion {
+  titulo: string;
+  detalle: string;
+  elegida: boolean;
+  onPress: () => void;
+}
+
+/** Una fila del desplegable de direcciones: alias arriba, dirección abajo y un tilde si es la elegida. */
+function OpcionDeDireccion({ titulo, detalle, elegida, onPress }: PropsDeOpcion) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={`${titulo}: ${detalle}`}
+      accessibilityState={{ checked: elegida }}
+      onPress={onPress}
+      style={estilos.opcion}
+    >
+      <View style={estilos.textosOpcion}>
+        <Text style={estilos.tituloOpcion}>{titulo}</Text>
+        <Text style={estilos.ayudaOpcion}>{detalle}</Text>
+      </View>
+      {elegida && <Ionicons name="checkmark" size={tamanios.icono} color={colores.verdeTexto} />}
+    </Pressable>
+  );
+}
+
 const estilos = StyleSheet.create({
   pantalla: { flex: 1, backgroundColor: colores.fondo },
+  opcion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaciado.s,
+    paddingVertical: espaciado.s,
+    borderBottomWidth: bordes.fino,
+    borderBottomColor: colores.bordeSuave,
+    minHeight: tamanios.celdaIcono,
+  },
+  textosOpcion: { flex: 1 },
+  tituloOpcion: { ...tipografia.cuerpo, fontWeight: '700', color: colores.tinta },
+  ayudaOpcion: { ...tipografia.cuerpo, color: colores.tintaSecundaria },
   contenedor: { padding: espaciado.m, paddingBottom: espaciado.xl },
   logo: { alignItems: 'center', paddingTop: espaciado.l },
   titulo: {

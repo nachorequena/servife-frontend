@@ -8,6 +8,10 @@ import { PerfilPropioScreen } from '../../prestador/PerfilPropioScreen';
 import { MiCuenta } from '../MiCuenta';
 
 jest.mock('../../prestador/MiServicio', () => ({ MiServicio: () => null }));
+// Mis direcciones tiene su propio test; acá solo importa que aparezca para el cliente.
+jest.mock('../../cliente/MisDirecciones', () => ({
+  MisDirecciones: () => require('react').createElement(require('react-native').Text, null, 'Mis direcciones'),
+}));
 /** El calendario nativo no corre en Jest: se reemplaza por un campo de texto con la misma interfaz. */
 jest.mock('../../../components/SelectorDeFecha', () => ({
   SelectorDeFecha: ({ etiqueta, value, onChange, maximo, inicial, onQuitar, error }: Record<string, string & ((v?: string) => void)>) => {
@@ -79,7 +83,9 @@ describe('MiCuenta', () => {
     expect(screen.getByText('Pantalla provisoria: sin diseño en la maqueta (D10).')).toBeTruthy();
     expect(screen.getByLabelText('Nombre y apellido').props.value).toBe('Ana Pérez');
     expect(screen.getByLabelText('Teléfono').props.value).toBe('3425551234');
-    expect(screen.getByLabelText('Dirección').props.value).toBe('Calle 1');
+    // El cliente maneja la dirección en Mis direcciones; A6 reenvía su principal tal cual.
+    expect(screen.queryByLabelText('Dirección')).toBeNull();
+    expect(screen.getByText('Mis direcciones')).toBeTruthy();
     expect(screen.getByLabelText('Fecha de nacimiento').props.value).toBe('1990-05-17');
     expect(screen.queryByText(/Estado de validación/)).toBeNull();
   });
@@ -157,6 +163,13 @@ describe('MiCuenta', () => {
     mockUsuario = { ...cliente, rol: 'PRESTADOR', estadoValidacion: 'PENDIENTE' };
     await render(<MiCuenta />);
     expect(screen.getByText('Estado de validación: Pendiente')).toBeTruthy();
+  });
+
+  it('el prestador sigue editando su dirección acá y no ve Mis direcciones', async () => {
+    mockUsuario = { ...cliente, rol: 'PRESTADOR', estadoValidacion: 'APROBADO' };
+    await render(<MiCuenta />);
+    expect(screen.getByLabelText('Dirección').props.value).toBe('Calle 1');
+    expect(screen.queryByText('Mis direcciones')).toBeNull();
   });
 
   describe('cambiar contraseña', () => {
