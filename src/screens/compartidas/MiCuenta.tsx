@@ -7,6 +7,7 @@ import { Avatar, Button, CerrarSesion, Input, SelectorDeFecha } from '../../comp
 import { useSesion } from '../../store/sesion';
 import { colores, espaciado, tipografia } from '../../theme';
 import { MENSAJE_DE_RED } from '../../utils/errores';
+import { MisDirecciones } from '../cliente/MisDirecciones';
 import { diaAnterior, hoyEnArgentina } from '../../utils/formato';
 
 const REGLA_DE_CONTRASENIA = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
@@ -40,7 +41,8 @@ function mensajeGeneral(fallo: Fallo, campos: string[]): string | undefined {
 
 /**
  * Mi cuenta (provisoria hasta D10) · CU03 · A4 (datos de la sesión), A6 (editar datos) y A7 (cambiar
- * contraseña). El gestor solo edita el nombre. Incluye "Cerrar sesión".
+ * contraseña). El gestor solo edita el nombre. El cliente no edita la dirección acá: tiene "Mis direcciones"
+ * (A10 a A14). Incluye "Cerrar sesión".
  */
 export function MiCuenta() {
   const { sesion, actualizarUsuario, ingresar, cerrar } = useSesion();
@@ -65,6 +67,7 @@ export function MiCuenta() {
     return null;
   }
   const esGestor = usuario.rol === 'GESTOR';
+  const esCliente = usuario.rol === 'CLIENTE';
   const email = usuario.email;
 
   async function guardar() {
@@ -76,7 +79,8 @@ export function MiCuenta() {
       : {
           nombreApellido: nombre,
           telefono: telefono.trim() === '' ? null : telefono.trim(),
-          direccion: direccion.trim() === '' ? null : direccion.trim(),
+          // El cliente reenvía su principal tal cual: A6 con otra dirección (o vacía) cambiaría la principal.
+          direccion: esCliente ? (sesion?.usuario.direccion ?? null) : direccion.trim() === '' ? null : direccion.trim(),
           fecNacimiento: fechaLimpia === '' ? null : fechaLimpia,
         };
     setGuardando(true);
@@ -158,12 +162,15 @@ export function MiCuenta() {
             keyboardType="phone-pad"
             error={errorDePerfil('telefono')}
           />
-          <Input
-            etiqueta="Dirección"
-            value={direccion}
-            onChangeText={setDireccion}
-            error={errorDePerfil('direccion')}
-          />
+          {/* El cliente maneja sus direcciones en "Mis direcciones" (la principal es la del perfil). */}
+          {!esCliente && (
+            <Input
+              etiqueta="Dirección"
+              value={direccion}
+              onChangeText={setDireccion}
+              error={errorDePerfil('direccion')}
+            />
+          )}
           <SelectorDeFecha
             etiqueta="Fecha de nacimiento"
             value={fecha}
@@ -179,6 +186,8 @@ export function MiCuenta() {
       {guardado && <Text style={estilos.mensaje}>Datos guardados.</Text>}
       {generalDePerfil !== undefined && <Text style={estilos.mensaje}>{generalDePerfil}</Text>}
       {falloDePerfil.red && <Text style={estilos.mensaje}>{MENSAJE_DE_RED}</Text>}
+
+      {esCliente && <MisDirecciones />}
 
       <Text style={estilos.seccion}>Cambiar contraseña</Text>
       <Input

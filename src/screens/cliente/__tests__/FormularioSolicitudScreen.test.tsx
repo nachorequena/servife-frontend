@@ -3,15 +3,21 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { memoria } from '../../../../__mocks__/expo-file-system';
 import { subirImagen } from '../../../api/archivos';
+import { listarMisDirecciones } from '../../../api/direcciones';
 import { obtenerDisponibilidad } from '../../../api/disponibilidad';
 import { MENSAJE_DE_RED } from '../../../utils/errores';
 import { ApiError } from '../../../api/errores';
 import { crearSolicitud } from '../../../api/solicitudes';
+import { renderPantalla } from '../../../testing/pantalla';
 import { FormularioSolicitudScreen } from '../FormularioSolicitudScreen';
 
 jest.mock('../../../api/solicitudes', () => ({ crearSolicitud: jest.fn() }));
 jest.mock('../../../api/archivos', () => ({ subirImagen: jest.fn() }));
 jest.mock('../../../api/disponibilidad', () => ({ obtenerDisponibilidad: jest.fn() }));
+jest.mock('../../../api/direcciones', () => ({
+  ...jest.requireActual('../../../api/direcciones'),
+  listarMisDirecciones: jest.fn(),
+}));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
 /** Los selectores nativos no corren en Jest: se reemplazan por un campo de texto con la misma interfaz. */
 jest.mock('../../../components/SelectorDeFecha', () => ({
@@ -56,6 +62,7 @@ jest.mock('../../../store/sesion', () => ({
 const mockCrear = crearSolicitud as jest.Mock;
 const mockSubir = subirImagen as jest.Mock;
 const mockDisp = obtenerDisponibilidad as jest.Mock;
+const mockDirecciones = listarMisDirecciones as jest.Mock;
 const mockElegir = ImagePicker.launchImageLibraryAsync as jest.Mock;
 
 const viernes = '2026-10-09';
@@ -81,6 +88,7 @@ beforeEach(() => {
   memoria.reiniciar();
   [mockCrear, mockSubir, mockDisp, mockElegir, mockNavigate, mockGoBack].forEach((m) => m.mockReset());
   mockDisp.mockResolvedValue({ dias: [5, 1, 3] });
+  mockDirecciones.mockReset().mockResolvedValue([]);
 });
 
 describe('FormularioSolicitudScreen', () => {
@@ -347,5 +355,66 @@ describe('FormularioSolicitudScreen', () => {
     await abrir();
     await fireEvent.press(screen.getByText('Cancelar'));
     expect(mockGoBack).toHaveBeenCalled();
+  });
+
+  describe('direcciones guardadas (A10)', () => {
+    const casa = { uuid: 'd1', alias: 'Casa', direccion: 'San Martín 123', principal: true };
+    const trabajo = { uuid: 'd2', alias: 'Trabajo', direccion: 'Rivadavia 500', principal: false };
+
+    async function abrirEnPantalla() {
+      await renderPantalla(<FormularioSolicitudScreen />);
+      await screen.findByText('Trabaja: Lun, Mié, Vie');
+    }
+
+    it('con una sola la precarga en el campo de texto, sin desplegable', async () => {
+      mockDirecciones.mockResolvedValue([casa]);
+      await abrirEnPantalla();
+      await waitFor(() => expect(screen.getByLabelText('Dirección').props.value).toBe('San Martín 123'));
+      expect(screen.queryByRole('button', { name: 'Dirección' })).toBeNull();
+    });
+
+    it('con dos o más precarga la principal y deja elegir otra del desplegable', async () => {
+      mockDirecciones.mockResolvedValue([casa, trabajo]);
+      mockCrear.mockResolvedValue({});
+      await abrirEnPantalla();
+      expect(await screen.findByText('Casa · San Martín 123')).toBeOnTheScreen();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Dirección' }));
+      expect(screen.getByRole('radio', { name: 'Casa (principal): San Martín 123' }).props.accessibilityState.checked).toBe(true);
+      await fireEvent.press(screen.getByRole('radio', { name: 'Trabajo: Rivadavia 500' }));
+      expect(screen.getByText('Trabajo · Rivadavia 500')).toBeOnTheScreen();
+
+      await completar();
+      await fireEvent.press(screen.getByText('Enviar solicitud'));
+      await waitFor(() => expect(mockCrear).toHaveBeenCalledWith(expect.objectContaining({ direccion: 'Rivadavia 500' })));
+    });
+
+    it('"Otra dirección" habilita escribir una a mano y es obligatoria', async () => {
+      mockDirecciones.mockResolvedValue([casa, trabajo]);
+      mockCrear.mockResolvedValue({});
+      await abrirEnPantalla();
+      await screen.findByText('Casa · San Martín 123');
+      expect(screen.queryByLabelText('Otra dirección')).toBeNull();
+
+      await fireEvent.press(screen.getByRole('button', { name: 'Dirección' }));
+      await fireEvent.press(screen.getByRole('radio', { name: /^Otra dirección/ }));
+      const otra = screen.getByLabelText('Otra dirección');
+      expect(otra.props.value).toBe('');
+
+      await completar();
+      await fireEvent.press(screen.getByText('Enviar solicitud'));
+      expect(screen.getByText('Es obligatoria.')).toBeOnTheScreen();
+      expect(mockCrear).not.toHaveBeenCalled();
+
+      await fireEvent.changeText(otra, 'Bv. Gálvez 1000');
+      await fireEvent.press(screen.getByText('Enviar solicitud'));
+      await waitFor(() => expect(mockCrear).toHaveBeenCalledWith(expect.objectContaining({ direccion: 'Bv. Gálvez 1000' })));
+    });
+
+    it('si no se pueden traer las direcciones queda la de la sesión en el campo de texto', async () => {
+      mockDirecciones.mockRejectedValue(new Error('red'));
+      await abrirEnPantalla();
+      expect(screen.getByLabelText('Dirección').props.value).toBe('Calle 1, Santa Fe');
+    });
   });
 });

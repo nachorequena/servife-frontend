@@ -81,9 +81,9 @@ describe('navegación por rol', () => {
     }
   });
 
-  it('el prestador ve Solicitudes, Mensajes, Trabajos y Perfil', async () => {
+  it('el prestador ve Dashboard, Solicitudes, Mensajes, Trabajos y Perfil', async () => {
     await entrarComo('PRESTADOR');
-    for (const tab of ['Solicitudes', 'Mensajes', 'Trabajos', 'Perfil']) {
+    for (const tab of ['Dashboard', 'Solicitudes', 'Mensajes', 'Trabajos', 'Perfil']) {
       expect(await screen.findByRole('button', { name: new RegExp(`^${tab}`) })).toBeTruthy();
     }
   });
